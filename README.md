@@ -1,6 +1,6 @@
 # DEBIAN LOCAL MIRROR
 
-This is a python module to create partial local mirrors of Debian-like repositories.
+This is a python module designed to create partial local mirrors of Debian-like repositories.
 
 ## INSTALLATION
 From source:
@@ -10,7 +10,7 @@ From source:
 Module is not (yet?) avaiable via *pip*.
 
 ## HOW TO USE
-Since general executable script may be confused about python version, I prefere not to create it and run any python software as module:
+No executable script is provided with a package. It may be confused about Python version to use. So run as module only is available:
 
     $   python -m debian_local_mirror
 
@@ -18,7 +18,7 @@ Python version desirable may be specified directly by this way:
 
     $   python3.5 -m debian_local_mirror
 
-Short help on command line keys is available with traditional --help switch: 
+Short help on command line parameters is available with traditional --help switch: 
 
     $   python -m debian_local_mirror --help
 

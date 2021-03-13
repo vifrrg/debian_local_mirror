@@ -1,6 +1,10 @@
 import logging
+from .mirror_config import MirrorsConfig
 
 class MirrorProcessor(object):
+    """
+    The main processor class
+    """
     def __init__(self, config):
         """
         Main process initialzation
@@ -8,7 +12,7 @@ class MirrorProcessor(object):
         :type config: str
         """
         logging.debug("Config path provided: '%s'" % config)
-        self._config = config
+        self._config = MirrorsConfig(config)
 
     def process(self):
         """

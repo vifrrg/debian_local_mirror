@@ -40,3 +40,4 @@ The only parameter required is a configuration file:
     }
 ]
 ```
+**WARNING**: all values are case-sensitive!

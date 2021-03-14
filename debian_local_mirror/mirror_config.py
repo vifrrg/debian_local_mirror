@@ -34,15 +34,54 @@ class MirrorsConfig(object):
     def _validate_cfg(self, cfg):
         """
         Validates single mirror cfg
+        :param cfg: single mirror configuration
+        :type cfg: dict
         """
-        # those are required
+        # type of cfg itself
         if not isinstance(cfg, dict):
             raise TypeError("Configuration of every mirror should be a dictionary, but %s found" % type (cfg))
 
+        # these are required
         for _key in ["source", "destination"]:
-            if _key not in cfg.keys():
-                raise KeyAbsenceError(_key)
+            self._validate_value_type(cfg, _key, str)
 
-        #"distributive" : "stable",
-        #"sections" : [ "main", "contrib", "non-free", "anything_else" ],
-        #"architectures"
+        # these too, but value have to be list
+        for _key in ["distributives", "sections"]:
+            self._validate_value_type(cfg, _key, list)
+
+        # and this one is optional, will copy all by default
+        self._validate_value_type(cfg, "architectures", list, required=False)
+
+    def _validate_value_type(self, cfg, key, value_type, required=True):
+        """
+        Validate key value for a cfg
+        :param cfg: cfg to validate key for
+        :type cfg: dict
+        :param key: key in cfg dict
+        :type key: str
+        :param value_type: type of value expected for cfg[key]
+        :type value_type: type
+        :param required: is this key required or not
+        :type reuqired: boolean
+        """
+        # if key is required then raise an error
+        if key not in cfg.keys():
+            if required: 
+                raise KeyAbsenceError(key)
+
+            logging.debug("Key '%s' not found in one of configs. Skipping sice not required" % key)
+            return
+
+        if not isinstance(cfg.get(key), value_type):
+            raise TypeError("'%s' value is to be '%s', but '%s' found" % (key, value_type, type(cfg.get(key))))
+
+        if not (value_type == list):
+            return
+
+        for _v in cfg.get(key):
+            if isinstance(_v, str):
+                continue
+
+            raise TypeError("'%s' value is to be list of strings, but one of members has type '%s'" %
+                (key, type(_v)))
+            

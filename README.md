@@ -34,7 +34,7 @@ The only parameter required is a configuration file:
 [
     {   "source" : "some.debian.server/path",
         "destination" : "/some/local/folder",
-        "distributive" : "stable",
+        "distributives" : [ "stable", "oldstable", "anything_else" ],
         "sections" : [ "main", "contrib", "non-free", "anything_else" ],
         "architectures" : ["amd64", "i386", "anything_else" ]
     }

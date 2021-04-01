@@ -13,6 +13,5 @@ setup(
     python_requires = ">=3.5",
     install_requires = [
         "requests",
-        "gpg>=1.8.0"
     ]
 )

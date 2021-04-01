@@ -12,6 +12,7 @@ setup(
     version = "0.0.0",
     python_requires = ">=3.5",
     install_requires = [
-        "requests"
+        "requests",
+        "gpg>=1.8.0"
     ]
 )

@@ -6,6 +6,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
     Specific release file processor
     """
     def __init__(self, remote, local, sub):
+        self._data = None
         super().__init__(
                 remote = remote,
                 local = local,
@@ -13,11 +14,23 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 extensions = [".gpg"],
                 absent_ok = False)
 
+    def open(self):
+        """
+        Open file
+        """
+        self._data = None
+        self._fd = open(self._local, "r")
+        self._data = self.parse()
+
+    def get_data(self):
+        return self._data
+
 class RepoFileInRelease(RepoFileRelease):
     """
     Helper to process InRelease file with PGP signature removed
     """
     def __init__(self, remote, local, sub):
+        self._data = None
         super(RepoFileRelease, self).__init__(
                 remote = remote,
                 local = local,

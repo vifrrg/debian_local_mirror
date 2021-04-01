@@ -40,6 +40,8 @@ class RepoFile(object):
             logging.debug("No default extension in the list, append it")
             self._ext.append("")
 
+        self._fd = None
+
     def check_create_local_path(self):
         """
         Prepare local folder for downloading
@@ -128,27 +130,25 @@ class RepoFile(object):
 
         self.check_after()
 
-class RepoFileRelease(RepoFile):
-    """
-    Specific release file processor
-    """
-    def __init__(self, remote, local, sub):
-        super().__init__(
-                remote = remote,
-                local = local,
-                sub = sub,
-                extensions = [".gpg"],
-                absent_ok = False)
 
-class RepoFileInRelease(RepoFileRelease):
-    """
-    Helper to process InRelease file with PGP signature removed
-    """
-    def __init__(self, remote, local, sub):
-        super(RepoFileRelease, self).__init__(
-                remote = remote,
-                local = local,
-                sub = sub,
-                extensions = [],
-                absent_ok = False)
+    def open(self):
+        """
+        Open file descriptor
+        """
+        self._fd = open(self._local, "r")
 
+    def close(self):
+        """
+        Close file descriptor
+        """
+
+        if self._fd:
+            self._fd.close()
+
+        self._fd = None
+
+    def __del__(self):
+        """
+        Destructor
+        """
+        self.close()

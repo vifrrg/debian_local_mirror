@@ -56,3 +56,4 @@ class MirrorProcessor(object):
 
         _rlfl.synchronize()
         _irlfl.synchronize()
+        _rlfl.open()

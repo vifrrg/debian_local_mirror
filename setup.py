@@ -10,8 +10,8 @@ setup(
     name = "debian_local_mirror",
     packages = ["debian_local_mirror"],
     version = "0.0.0",
-    python_requires = ">=3.5",
+    python_requires = ">=3.6.0",
     install_requires = [
-        "requests",
+        "requests"
     ]
 )

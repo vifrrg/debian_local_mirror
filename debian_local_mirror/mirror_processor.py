@@ -1,6 +1,6 @@
 import logging
 from .mirror_config import MirrorsConfig
-from .files import RepoFileRelease, RepoFileInRelease
+from .repofile_release import RepoFileRelease, RepoFileInRelease
 
 class MirrorProcessor(object):
     """

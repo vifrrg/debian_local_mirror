@@ -84,4 +84,10 @@ class MirrorsConfig(object):
 
             raise TypeError("'%s' value is to be list of strings, but one of members has type '%s'" %
                 (key, type(_v)))
+
+    def get_mirrors(self):
+        """
+        Return list of mirror configurations
+        """
+        return self._cfg
             

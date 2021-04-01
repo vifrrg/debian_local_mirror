@@ -16,7 +16,7 @@ class HttpError(Exception):
 
 
 class RepoFile(object):
-    def __init__(self, remote, local, sub, absent_ok = False):
+    def __init__(self, remote, local, sub, extensions = list(), absent_ok = False):
         """
         Synchronization of single file - basics
         :param remote: URI to exact remote
@@ -26,10 +26,19 @@ class RepoFile(object):
         """
         if not sub:
             raise ValueError("Subpath is required")
+        
+        if not isinstance(extensions, list):
+            raise TypeError("Etensions list is not a list: '%s'" % type(extensions))
+
         self._remote = posixpath.join(remote, posixpath.sep.join(sub))
         self._local = os.path.join(os.path.abspath(local), os.path.sep.join(sub))
         self._absent_ok = absent_ok
+        self._ext = extensions
         logging.debug("File: '%s' ==> '%s'" % (self._remote, self._local))
+
+        if "" not in self._ext:
+            logging.debug("No default extension in the list, append it")
+            self._ext.append("")
 
     def check_create_local_path(self):
         """
@@ -61,7 +70,16 @@ class RepoFile(object):
         Check if remote file content is the same as local after download,
         to be overriden in derived classes
         """
-        logging.debug("Check returns true by default")
+
+        if self._absent_ok:
+            logging.debug("Verification skipped - file can be absent")
+            return True
+
+        for _ext in self._ext:
+            _fullpth = self._local + _ext;
+            if not os.path.exists(_fullpth):
+                raise FileNotFoundError(_fullpth)
+
         return True
 
     def _download_remote(self, remote, local, absent_ok):
@@ -103,42 +121,34 @@ class RepoFile(object):
             logging.debug("File data is OK, no need to donwload")
             return
 
-        self._download_remote(self._remote, self._local, self._absent_ok)       
+        for _ext in self._ext:
+            _fullpth_remote = self._remote + _ext
+            _fullpth_local = self._local + _ext
+            self._download_remote(_fullpth_remote, _fullpth_local, self._absent_ok)
 
-        if not self.check_after():
-            raise IOError("Downloading faied: '%s'" % self._remote)
+        self.check_after()
 
 class RepoFileRelease(RepoFile):
-    def _check_signature(self):
-        """
-        Check gpg signature
-        """
-        return True
-
-    def check_before(self):
-        """
-        Get signature file from remote and verify if local file fulfils it
-        """
-        if not os.path.exists(self._local):
-            return False
-
-        self._download_remote(
-                remote = self._remote + ".gpg",
-                local = self._local + ".gpg",
+    """
+    Specific release file processor
+    """
+    def __init__(self, remote, local, sub):
+        super().__init__(
+                remote = remote,
+                local = local,
+                sub = sub,
+                extensions = [".gpg"],
                 absent_ok = False)
 
-        return self._check_signature()
-
-    def check_after(self):
-        """
-        Signature is to be downloaded already, check only
-        """
-        return self._check_signature()
-
-class RepoFileInRelease(RepoFile):
-    def check_after(self):
-        """
-        Check self-signed file after downloading
-        """
-        return True
+class RepoFileInRelease(RepoFileRelease):
+    """
+    Helper to process InRelease file with PGP signature removed
+    """
+    def __init__(self, remote, local, sub):
+        super(RepoFileRelease, self).__init__(
+                remote = remote,
+                local = local,
+                sub = sub,
+                extensions = [],
+                absent_ok = False)
 

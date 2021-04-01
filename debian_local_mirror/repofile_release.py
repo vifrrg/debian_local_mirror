@@ -1,6 +1,7 @@
 from .repofile import RepoFile
+from .metadata_parser import DebianMetaParser
 
-class RepoFileRelease(RepoFile):
+class RepoFileRelease(RepoFile, DebianMetaParser):
     """
     Specific release file processor
     """

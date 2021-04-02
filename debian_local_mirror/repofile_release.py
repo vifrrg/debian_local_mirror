@@ -14,6 +14,17 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 extensions = [".gpg"],
                 absent_ok = False)
 
+        self._set_list_field()
+
+    def _set_list_field(self):
+        """
+        Setting a list of list-fields for parser
+        """
+        self._list_fields = [
+                "Architectures",
+                "Components"
+                ]
+
     def open(self):
         """
         Open file
@@ -37,4 +48,5 @@ class RepoFileInRelease(RepoFileRelease):
                 sub = sub,
                 extensions = [],
                 absent_ok = False)
+        self._set_list_field()
 

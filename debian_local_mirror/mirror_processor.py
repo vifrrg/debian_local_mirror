@@ -113,7 +113,7 @@ class MirrorProcessor(object):
 
         for _fl in _subfiles.keys():
             logging.info("Processing file: %s" % _fl)
-            _subfl = RepoFileWithChecksum(
+            _subfl = RepoFileWithCheckSum(
                 local=mirror.get("destination"),
                 remote=mirror.get("source"),
                 fdict=_subfiles.get(_fl))

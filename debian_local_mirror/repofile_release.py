@@ -112,7 +112,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 _result[_key][_field] = _hash
 
                 if "sub" not in _result[_key].keys():
-                    _result[_key]["sub"] = self._sub + _key.split(posixpath.sep)
+                    _result[_key]["sub"] = self._sub[:-1] + _key.split(posixpath.sep)
                     logging.debug("Adding %s as subpath" % posixpath.sep.join(_result[_key]["sub"]))
 
                 if not self.is_by_hash():
@@ -121,10 +121,13 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 if "by-hash" not in _result[_key].keys():
                     _result[_key]["by-hash"] = list()
 
-                _result[_key]["by-hash"].append(
-                    self._sub +
-                    posixpath.dirname(_key).split(posixpath.sep) +
-                    ["by-hash", _field, _hash])
+                _sub_hl = self._sub[:-1] + \
+                    posixpath.dirname(_key).split(posixpath.sep) + \
+                    ["by-hash", _field, _hash]
+
+                logging.debug("Adding %s as sublink" % posixpath.sep.join(_sub_hl))
+
+                _result[_key]["by-hash"].append(_sub_hl)
 
         return _result
 

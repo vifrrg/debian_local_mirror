@@ -2,6 +2,10 @@ import logging
 from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
 
+class MirrorError(Exception):
+    def __init__(self, remote, local, message):
+        super().__init__("Mirroring from '%s' to '%s' failed: %s" % (remote, local, message))
+
 class MirrorProcessor(object):
     """
     The main processor class
@@ -45,15 +49,51 @@ class MirrorProcessor(object):
         # To download packages from a repository apt would download a InRelease or Release 
         # file from the $ARCHIVE_ROOT/dists/$DISTRIBUTION directory.
         # InRelease files are signed in-line while Release files should have an accompanying Release.gpg file
-        _rlfl = RepoFileRelease(
-                local=mirror.get("destination"),
-                remote=mirror.get("source"),
-                sub=["dists", distr, "Release"])
-        _irlfl = RepoFileInRelease(
-                local=mirror.get("destination"),
-                remote=mirror.get("source"),
-                sub=["dists", distr, "InRelease"])
+        _rlfl = self._get_release_file(mirror, distr)
 
-        _rlfl.synchronize()
-        _irlfl.synchronize()
-        _rlfl.open()
+        if not _rlfl:
+            raise MirrorError(mirror.get("source"), mirror.get("destination"), 
+            "Release files not found for distributive '%s'" % distr)
+
+        self._process_release(_rlfl)
+        
+    def _get_release_file(self, mirror, distr):
+        """
+        Download Release / InRelease files from remote to local
+        Perhaps both, but at least one
+        :param mirror: mirror configuration
+        :type mirror: dict
+        :param distr: distributive name
+        :type distr: str
+        """
+        _rlfl = None
+        _candidates = [
+            RepoFileRelease(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                sub=["dists", distr, "Release"]),
+            RepoFileInRelease(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                sub=["dists", distr, "InRelease"]) ]
+
+        for _tmprlfl in _candidates:
+            if not _tmprlfl.synchronize():
+                continue
+
+            if not _rlfl:
+                _rlfl = _tmprlfl
+
+        return _rlfl
+
+    def _process_release(self, rlfl):
+        """
+        Do process single release file
+        :param rlfl: Release file
+        :type rlfl: RepoFileRelease
+        """
+        logging.debug("Processin release file from '%s'" % rlfl.get_local_path())
+        rlfl.open()
+        logging.debug("Keys in repofile: %s" % ';'.join(list(rlfl.get_data().keys())))
+        rlfl.close()
+

@@ -73,16 +73,18 @@ class RepoFile(object):
         to be overriden in derived classes
         """
 
-        if self._absent_ok:
-            logging.debug("Verification skipped - file can be absent")
-            return True
+        _result = True
 
         for _ext in self._ext:
             _fullpth = self._local + _ext;
             if not os.path.exists(_fullpth):
-                raise FileNotFoundError(_fullpth)
+                if not self._absence_ok:
+                    raise FileNotFoundError(_fullpth)
 
-        return True
+                _result = False
+                break
+
+        return _result
 
     def _download_remote(self, remote, local, absent_ok):
         """
@@ -128,14 +130,22 @@ class RepoFile(object):
             _fullpth_local = self._local + _ext
             self._download_remote(_fullpth_remote, _fullpth_local, self._absent_ok)
 
-        self.check_after()
-
+        return self.check_after()
 
     def open(self):
         """
         Open file descriptor
         """
         self._fd = open(self._local, "r")
+
+    def get_local_path(self):
+        """
+        Get full local path
+        """
+        if not self.check_after():
+            return None
+
+        return self._local
 
     def close(self):
         """

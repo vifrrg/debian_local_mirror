@@ -26,10 +26,11 @@ class RepoFile(object):
         """
         if not sub:
             raise ValueError("Subpath is required")
-        
+
         if not isinstance(extensions, list):
             raise TypeError("Etensions list is not a list: '%s'" % type(extensions))
 
+        self._sub = sub
         self._remote = posixpath.join(remote, posixpath.sep.join(sub))
         self._local = os.path.join(os.path.abspath(local), os.path.sep.join(sub))
         self._absent_ok = absent_ok
@@ -73,18 +74,18 @@ class RepoFile(object):
         to be overriden in derived classes
         """
 
-        _result = True
+        if self._absent_ok and os.path.exists(self._local):
+            return True
 
         for _ext in self._ext:
             _fullpth = self._local + _ext;
             if not os.path.exists(_fullpth):
-                if not self._absence_ok:
+                if not self._absent_ok:
                     raise FileNotFoundError(_fullpth)
 
-                _result = False
-                break
+                return False
 
-        return _result
+        return True
 
     def _download_remote(self, remote, local, absent_ok):
         """
@@ -138,14 +139,19 @@ class RepoFile(object):
         """
         self._fd = open(self._local, "r")
 
-    def get_local_path(self):
+    def get_local_paths(self):
         """
-        Get full local path
+        Get full local paths list
         """
-        if not self.check_after():
-            return None
+        _result = list()
 
-        return self._local
+        for _ext in self._ext:
+            _fullpth = self._local + _ext;
+
+            if os.path.exists(_fullpth):
+                _result.append(_fullpth)
+
+        return _result
 
     def close(self):
         """

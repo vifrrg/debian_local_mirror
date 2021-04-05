@@ -3,6 +3,7 @@ from .metadata_parser import DebianMetaParser, FormatError
 from tempfile import TemporaryFile
 import logging
 import re
+import posixpath
 
 class RepoFileRelease(RepoFile, DebianMetaParser):
     """
@@ -28,6 +29,12 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 "Components"
                 ]
 
+        self._checksums_fields = [
+                "MD5Sum",
+                "SHA1",
+                "SHA256"
+                ] 
+
     def _convert_checksums(self, data):
         """
         Release-specific parsing of checksums list
@@ -39,16 +46,10 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             raise FormatError(self._remote, "Wrong format - parse result should be a dictionary, but %s found" %
                     type(data))
 
-        _fields = [
-                "MD5Sum", 
-                "SHA1", 
-                "SHA256"
-                ]
-
         _split_re = re.compile('\s+')
-        logging.debug("Converting checksums fields: %s" % ', '.join(_fields))
+        logging.debug("Converting checksums fields: %s" % ', '.join(self._checksums_fields))
 
-        for _key in _fields:
+        for _key in self._checksums_fields:
             _value = data.get(_key)
 
             if not _value:
@@ -79,8 +80,42 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self._fd = open(self._local, "r")
         self._data = self.parse()
 
-    def get_data(self):
-        return self._data
+    def is_by_hash(self):
+        """
+        Return by-has acquiring, boolean
+        """
+        return self._data.get('Acquire-By-Hash', '').lower() in ['yes', 'true']
+
+    def get_subfiles(self):
+        """
+        Return dictionary with files list
+        """
+        _result = dict()
+        for _field in self._checksums_fields:
+            _list = self._data.get(_field)
+
+            if not _list:
+                continue
+
+            for _fl in _list:
+                _key = _fl.get("path")
+                _size = _fl.get("size")
+                _hash = _fl.get("hash")
+
+                if _key not in _result.keys():
+                    _result[_key] = dict()
+
+                if "size" in _result[_key].keys() and _result[_key]["size"] != _size:
+                    raise ValueError("Sizes not match for '%s' in '%s'" % (_key,self._local))
+
+                _result[_key]["size"] = _size
+                _result[_key][_field] = _hash
+
+                if "sub" not in _result[_key].keys():
+                    _result[_key]["sub"] = self._sub + _key.split(posixpath.sep)
+                    logging.debug("Adding %s as subpath" % posixpath.sep.join(_result[_key]["sub"]))
+
+        return _result
 
 class RepoFileInRelease(RepoFileRelease):
     """

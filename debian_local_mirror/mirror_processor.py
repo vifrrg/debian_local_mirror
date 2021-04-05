@@ -1,6 +1,7 @@
 import logging
 from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
+from tempfile import NamedTemporaryFile
 
 class MirrorError(Exception):
     def __init__(self, remote, local, message):
@@ -18,6 +19,8 @@ class MirrorProcessor(object):
         """
         logging.debug("Config path provided: '%s'" % config)
         self._config = MirrorsConfig(config)
+        self._files = NamedTemporaryFile(mode = 'w+')
+        logging.debug("Temporary files list: %s" % self._files.name)
 
     def process(self):
         """
@@ -84,6 +87,8 @@ class MirrorProcessor(object):
             if not _rlfl:
                 _rlfl = _tmprlfl
 
+            self._files.write('\n'.join(_rlfl.get_local_paths))
+
         return _rlfl
 
     def _process_release(self, rlfl):
@@ -92,8 +97,19 @@ class MirrorProcessor(object):
         :param rlfl: Release file
         :type rlfl: RepoFileRelease
         """
-        logging.debug("Processin release file from '%s'" % rlfl.get_local_path())
+        logging.debug("Processin release file from '%s'" % ':'.join(rlfl.get_local_paths()))
         rlfl.open()
-        logging.debug("Keys in repofile: %s" % ';'.join(list(rlfl.get_data().keys())))
+
+        # loop by-files from Release one
+        _subfiles = rlfl.get_subfiles()
+
+        if not _subfiles:
+            # no files listed in this exact Release
+            rlfl.close()
+            return
+
+        for _fl in _subfiles.keys():
+            logging.debug("Processing file: %s" % _fl)
+
         rlfl.close()
 

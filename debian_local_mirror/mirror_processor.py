@@ -1,6 +1,7 @@
 import logging
 from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
+from .repofile_checksum import RepoFileWithCheckSum
 from tempfile import NamedTemporaryFile
 
 class MirrorError(Exception):
@@ -58,7 +59,7 @@ class MirrorProcessor(object):
             raise MirrorError(mirror.get("source"), mirror.get("destination"), 
             "Release files not found for distributive '%s'" % distr)
 
-        self._process_release(_rlfl)
+        self._process_release(mirror, _rlfl)
         
     def _get_release_file(self, mirror, distr):
         """
@@ -87,13 +88,15 @@ class MirrorProcessor(object):
             if not _rlfl:
                 _rlfl = _tmprlfl
 
-            self._files.write('\n'.join(_rlfl.get_local_paths))
+            self._files.write('\n'.join(_rlfl.get_local_paths()))
 
         return _rlfl
 
-    def _process_release(self, rlfl):
+    def _process_release(self, mirror, rlfl):
         """
         Do process single release file
+        :param mirror: mirror configuration
+        :type mirror: dict
         :param rlfl: Release file
         :type rlfl: RepoFileRelease
         """
@@ -109,7 +112,13 @@ class MirrorProcessor(object):
             return
 
         for _fl in _subfiles.keys():
-            logging.debug("Processing file: %s" % _fl)
+            logging.info("Processing file: %s" % _fl)
+            _subfl = RepoFileWithChecksum(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                fdict=_subfiles.get(_fl))
+
+            _subfl.synchronize()
 
         rlfl.close()
 

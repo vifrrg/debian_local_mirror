@@ -47,13 +47,20 @@ class RepoFile(object):
         """
         Prepare local folder for downloading
         """
-        if os.path.exists(self._local):
-            logging.debug("'%s' exists, preparation skipped" % self._local)
+        return self._check_create_local_path(self._local)
+
+    def _check_create_local_path(self, path):
+        """
+        :param path: path to check/create
+        :type path: str
+        """
+        if os.path.exists(path):
+            logging.debug("'%s' exists, preparation skipped" % path)
             return
 
-        _dirpath = os.path.dirname(self._local)
+        _dirpath = os.path.dirname(path)
 
-        if os.path.isdir(_dirpath):
+        if os.path.isdir(path):
             logging.debug("'%s' exists, preparation skipped" % _dirpath)
             return
 

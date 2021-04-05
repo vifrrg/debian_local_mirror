@@ -115,6 +115,17 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                     _result[_key]["sub"] = self._sub + _key.split(posixpath.sep)
                     logging.debug("Adding %s as subpath" % posixpath.sep.join(_result[_key]["sub"]))
 
+                if not self.is_by_hash():
+                    continue
+
+                if "by-hash" not in _result[_key].keys():
+                    _result[_key]["by-hash"] = list()
+
+                _result[_key]["by-hash"].append(
+                    self._sub +
+                    posixpath.dirname(_key).split(posixpath.sep) +
+                    ["by-hash", _field, _hash])
+
         return _result
 
 class RepoFileInRelease(RepoFileRelease):

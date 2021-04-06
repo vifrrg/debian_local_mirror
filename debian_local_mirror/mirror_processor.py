@@ -100,7 +100,7 @@ class MirrorProcessor(object):
         :param rlfl: Release file
         :type rlfl: RepoFileRelease
         """
-        logging.debug("Processin release file from '%s'" % ':'.join(rlfl.get_local_paths()))
+        logging.debug("Processing release file from '%s'" % ':'.join(rlfl.get_local_paths()))
         rlfl.open()
 
         # loop by-files from Release one
@@ -118,7 +118,8 @@ class MirrorProcessor(object):
                 remote=mirror.get("source"),
                 fdict=_subfiles.get(_fl))
 
-            _subfl.synchronize()
+            if(_subfl.synchronize()):
+                self._files.write('\n'.join(_subfl.get_local_paths()))
 
         rlfl.close()
 

@@ -44,6 +44,17 @@ class RepoFile(object):
 
         self._fd = None
 
+    def _set_checksums_fields(self):
+        """
+        Setting a list of checksums-fields for parser
+        and further processing
+        """
+        self._checksums_fields = [
+                "MD5Sum",
+                "SHA1",
+                "SHA256"
+                ] 
+
     def check_create_local_path(self):
         """
         Prepare local folder for downloading
@@ -132,7 +143,7 @@ class RepoFile(object):
 
         if self.check_before():
             logging.debug("File data is OK, no need to donwload")
-            return
+            return True
 
         for _ext in self._ext:
             _fullpth_remote = self._remote + _ext
@@ -141,11 +152,13 @@ class RepoFile(object):
 
         return self.check_after()
 
-    def open(self):
+    def open(self, mode="rb"):
         """
         Open file descriptor
+        :param mode: open mode
+        :type mode: str
         """
-        self._fd = open(self._local, "r")
+        self._fd = open(self._local, mode)
 
     def get_local_paths(self):
         """

@@ -29,11 +29,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 "Components"
                 ]
 
-        self._checksums_fields = [
-                "MD5Sum",
-                "SHA1",
-                "SHA256"
-                ] 
+        self._set_checksums_fields()
 
     def _convert_checksums(self, data):
         """
@@ -72,12 +68,14 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         return self._convert_checksums(super().parse())
 
-    def open(self):
+    def open(self, mode="r"):
         """
         Open file
+        :param mode: open mode
+        :type mode: str
         """
         self._data = None
-        self._fd = open(self._local, "r")
+        self._fd = open(self._local, mode)
         self._data = self.parse()
 
     def is_by_hash(self):
@@ -145,13 +143,15 @@ class RepoFileInRelease(RepoFileRelease):
                 absent_ok = True)
         self._set_list_field()
 
-    def open(self):
+    def open(self, mode="r"):
         """
         Open file. This version creates a temfile from the original
         with GPG-related data removed
+        :param mode: open mode (not mandatory for this case, leaved for compatibility)
+        :type mode: str
         """
         self._data = None
-        self._fd = TemporaryFile(mode = 'w+')
+        self._fd = TemporaryFile(mode='w+')
 
         with open(self._local, "r") as _lfl:
             _pgp_start = False

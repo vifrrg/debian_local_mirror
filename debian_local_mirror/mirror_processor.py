@@ -20,7 +20,7 @@ class MirrorProcessor(object):
         """
         logging.debug("Config path provided: '%s'" % config)
         self._config = MirrorsConfig(config)
-        self._files = NamedTemporaryFile(mode = 'w+')
+        self._files = None
         logging.debug("Temporary files list: %s" % self._files.name)
 
     def process(self):
@@ -38,8 +38,11 @@ class MirrorProcessor(object):
         """
 
         # loop by distributives and architectures
+        self._files = NamedTemporaryFile(mode = 'w+')
         for _dist in mirror.get("distributives"):
             self._process_single_distributive(mirror, _dist)
+
+        self._remove_trash(os.path.abspath(mirror.get("destination")))
 
     def _process_single_distributive(self, mirror, distr):
         """
@@ -60,6 +63,17 @@ class MirrorProcessor(object):
             "Release files not found for distributive '%s'" % distr)
 
         self._process_release(mirror, _rlfl)
+
+        _archs = mirror.get("architectures")
+
+        if "all" not in _archs and not _rlfl.skip_all_architecture():
+            logging.debug("Pseudo-architecture 'all' has been added to the list forcibly")
+            _archs.append("all")
+
+        for _section in mirror.get("sections"):
+            for _arch in _archs:
+                logging.info("Processing section '%s', architecture '%s'" % (_section, _arch))
+                self._process_section_architecture(mirror, _section, _arch)
         
     def _get_release_file(self, mirror, distr):
         """
@@ -122,4 +136,24 @@ class MirrorProcessor(object):
                 self._files.write('\n'.join(_subfl.get_local_paths()))
 
         rlfl.close()
+
+    def _remove_trash(self, root):
+        """
+        Housekeeping for single mirror
+        :param root: path to root folder to process
+        :type root: str
+        """
+        return
+
+    def _process_section_architecture(self, mirror, section, arch):
+        """
+        Get parse packages index and synchronize all packages
+        :param mirror: full mirror configuration
+        :type mirror: dict
+        :param section: secton
+        :type section: str
+        :param arch: architecture
+        :type arch: str
+        """
+        return
 

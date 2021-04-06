@@ -84,6 +84,12 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         return self._data.get('Acquire-By-Hash', '').lower() in ['yes', 'true']
 
+    def skip_all_architecture(self):
+        """
+        Should the archtecture "all" be skipped while processing
+        """
+        return self._data.get('No-Support-for-Architecture-all', '').lower() in ['yes', 'true']
+
     def get_subfiles(self):
         """
         Return dictionary with files list

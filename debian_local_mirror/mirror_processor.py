@@ -3,6 +3,7 @@ from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
 from .repofile_checksum import RepoFileWithCheckSum
 from tempfile import NamedTemporaryFile
+import os
 
 class MirrorError(Exception):
     def __init__(self, remote, local, message):
@@ -21,7 +22,6 @@ class MirrorProcessor(object):
         logging.debug("Config path provided: '%s'" % config)
         self._config = MirrorsConfig(config)
         self._files = None
-        logging.debug("Temporary files list: %s" % self._files.name)
 
     def process(self):
         """

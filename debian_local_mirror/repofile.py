@@ -123,6 +123,7 @@ class RepoFile(object):
             os.remove(local)
 
         if _rsp.status_code != 200:
+            _rsp.close()
             if absent_ok:
                 # remove local file
                 logging.debug("File '%s' not found, removing local copy also" % self._remote)
@@ -131,9 +132,12 @@ class RepoFile(object):
             raise HttpError(_rsp.status_code, _rsp.url, _rsp, 'Error making request to server')
 
         logging.info("'%s' ==> '%s'" % (remote, local))
+
         with open(local, 'wb') as _fl:
             shutil.copyfileobj(_rsp.raw, _fl)
             _fl.flush()
+
+        _rsp.close()
 
     def synchronize(self):
         """

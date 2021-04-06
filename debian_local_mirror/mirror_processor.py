@@ -43,6 +43,8 @@ class MirrorProcessor(object):
             self._process_single_distributive(mirror, _dist)
 
         self._remove_trash(os.path.abspath(mirror.get("destination")))
+        self._files.close()
+        self._files = None
 
     def _process_single_distributive(self, mirror, distr):
         """
@@ -102,7 +104,7 @@ class MirrorProcessor(object):
             if not _rlfl:
                 _rlfl = _tmprlfl
 
-            self._files.write('\n'.join(_rlfl.get_local_paths()))
+            self._files.write('\n' + '\n'.join(_tmprlfl.get_local_paths()))
 
         return _rlfl
 
@@ -133,9 +135,39 @@ class MirrorProcessor(object):
                 fdict=_subfiles.get(_fl))
 
             if(_subfl.synchronize()):
-                self._files.write('\n'.join(_subfl.get_local_paths()))
+                self._files.write('\n' + '\n'.join(_subfl.get_local_paths()))
 
         rlfl.close()
+
+    def _is_in_files_list(self, path):
+        """
+        Check if a path was synchronized during the session
+        :param path: path to check
+        :type path: str
+        """
+        logging.log(3, "Searching '%s' in files list..." % path)
+
+        if not self._files:
+            logging.log(3, "_files list is falsy")
+            return False
+
+        self._files.seek(0, 0)
+
+        while True:
+            _line = self._files.readline()
+
+            if not _line:
+                logging.log(3, "Empty line")
+                break
+
+            _line = _line.strip()
+            logging.log(3, "Comparison: '%s' <==> '%s'" % (path, _line))
+
+            if _line == path:
+                logging.log(3, "Returning True")
+                return True
+
+        return False
 
     def _remove_trash(self, root):
         """
@@ -143,7 +175,14 @@ class MirrorProcessor(object):
         :param root: path to root folder to process
         :type root: str
         """
-        return
+        logging.debug("Removing obsolete files...")
+        for _root, _dirs, _files in os.walk(root):
+            for _file in _files:
+                _fullpth = os.path.join(_root, _file)
+
+                if not self._is_in_files_list(_fullpth):
+                    logging.info("Removing obsolete '%s'" % _fullpth)
+                    os.remove(_fullpth)
 
     def _process_section_architecture(self, mirror, section, arch):
         """

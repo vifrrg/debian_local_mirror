@@ -51,6 +51,7 @@ class RepoFile(object):
         """
         self._checksums_fields = [
                 "MD5Sum",
+                "MD5sum",
                 "SHA1",
                 "SHA256"
                 ] 

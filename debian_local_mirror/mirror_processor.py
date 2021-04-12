@@ -202,7 +202,10 @@ class MirrorProcessor(object):
                 remote=mirror.get("source"),
                 sub=["dists", distr, section, "binary-%s" % arch, "Packages"])
 
-        _pkgs.synchronize()
+        if not _pkgs.synchronize():
+            # no such architecture, skip it
+            return
+
         _pkgs.open()
         
         for _fl in _pkgs.get_subfiles():

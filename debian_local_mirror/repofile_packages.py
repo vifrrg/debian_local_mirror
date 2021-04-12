@@ -22,7 +22,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
                 local = local,
                 sub = sub,
                 extensions = [".gz", ".xz", ".bz2", ".lzma"],
-                absent_ok = False)
+                absent_ok = True)
 
     def check_before(self):
         """
@@ -34,6 +34,9 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
             if os.path.exists(_fullpth):
                 return True
+
+        if self._absent_ok:
+            return False
 
         raise FileNotFoundError(self._local)
 
@@ -68,18 +71,43 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
             elif _ext in [".xz", ".lzma"]:
                 self._fd = lzma.open(_fullpth, mode=mode)
 
+            if self._fd:
+                break
+
         if not self._fd:
             raise NotImplementedError("Can not open %s" % self._local)
         
-        self._data = self.parse()
+        self._data = self._parse()
+
+    def _parse(self):
+        """
+        Some additional checks to default 'parse'
+        """
+        _data = self.parse()
+
+        # may be file is empty, so 'parse' will return a dictionary
+        if not isinstance(_data, dict):
+            logging.debug("Parsed data is not dictionary: '%s'" % type(_data))
+            return _data
+
+        _result = list()
+
+        if _data and 'Filename' in _data.keys():
+            # at least Filename is necessary for correct data
+            _result.append(self._data)
+
+        logging.debug("Parsed data has been converted to list")
+        return _result
+
 
     def get_subfiles(self):
         """
         Return files dictionary
         """
+
         if not isinstance(self._data, list):
             raise FormatError(self._remote, "Wrong format - parse result should be a list, but %s found" %
-                    type(data))
+                    type(self._data))
 
         _result = list()
 
@@ -90,5 +118,6 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
             _result.append(_fld)
 
+        logging.debug("Returning list of '%d' files" % len(_result))
         return _result
 

@@ -77,11 +77,15 @@ class DebianMetaParser(object):
             if _key and _append_new_dict:
                 _result.append(dict())
                 _append_new_dict = False
+                logging.debug("New dictionary appended to list")
 
             if not _ln:
                 # append last value to a dict
                 logging.debug("End of file reached")
-                _result = self._append_result(_result, _key, _value)
+
+                if _key:
+                    _result = self._append_result(_result, _key, _value)
+
                 break
 
             _ln = _ln.strip()
@@ -91,12 +95,15 @@ class DebianMetaParser(object):
                     logging.debug("Unexpeced empty line in '%s'" % self._local)
                     continue
 
+                logging.debug("Empty line found, list conversion check")
+
                 _result = self._append_result(_result, _key, _value)
 
                 if isinstance(_result, dict):
                     logging.debug("Converting result to list")
                     _result = [_result]
-                    _append_new_dict = True
+
+                _append_new_dict = True
 
                 _key = ""
                 _value = ""

@@ -125,9 +125,13 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 if "by-hash" not in _result[_key].keys():
                     _result[_key]["by-hash"] = list()
 
-                _sub_hl = self._sub[:-1] + \
-                    posixpath.dirname(_key).split(posixpath.sep) + \
-                    ["by-hash", _field, _hash]
+                _sub_hl = self._sub[:-1]
+                _ppth_dirname = posixpath.dirname(_key).strip(posixpath.sep)
+
+                if posixpath.sep in _ppth_dirname:
+                    _sub_hl += _ppth_dirname.split(posixpath.sep)
+
+                _sub_hl += ["by-hash", _field, _hash]
 
                 logging.debug("Adding %s as sublink" % posixpath.sep.join(_sub_hl))
 

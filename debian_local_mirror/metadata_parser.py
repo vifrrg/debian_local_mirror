@@ -8,6 +8,7 @@ class DebianMetaParser(object):
     _sep = ":" # value-key separator
     _list_feilds = [] # keys for which value should be a list
     _list_sep = " " # separator for list-fields
+    _empty_keys=["Description"]
 
     def _convert_list_field(self, key, value):
         """
@@ -117,7 +118,7 @@ class DebianMetaParser(object):
                 continue
 
             if _key:
-                if not _value:
+                if not _value and _key not in self._empty_keys:
                     raise FormatError(self._local, "Key '%s' without value" % _key)
 
                 self._append_result(_result, _key, _value)

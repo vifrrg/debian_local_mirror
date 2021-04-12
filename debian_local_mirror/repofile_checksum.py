@@ -37,6 +37,7 @@ class RepoFileWithCheckSum(RepoFile):
 
         for _link_list in self._fdict.get("by-hash"):
             _link_path = os.path.join(self._base_local, os.path.sep.join(_link_list))
+            logging.debug("Link components: '%s', '%s'" % (self._base_local, os.path.sep.join(_link_list)))
             logging.debug("Checking symlink: '%s' ==> '%s'" % (_link_path, self._local))
             self._check_create_local_path(_link_path)
 

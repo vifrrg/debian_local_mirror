@@ -55,7 +55,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
             for _tval in _value:
                 (_hash, _size, _path) = _split_re.split(_tval, 2)
-                _nval.append({"hash": _hash, "size": int(_size), "path": _path})
+                _nval.append({"hash": _hash, "Size": int(_size), "Filename": _path})
 
             data[_key] = _nval
 
@@ -74,6 +74,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         :param mode: open mode
         :type mode: str
         """
+        self.close()
         self._data = None
         self._fd = open(self._local, mode)
         self._data = self.parse()
@@ -102,17 +103,17 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 continue
 
             for _fl in _list:
-                _key = _fl.get("path")
-                _size = _fl.get("size")
+                _key = _fl.get("Filename")
+                _size = _fl.get("Size")
                 _hash = _fl.get("hash")
 
                 if _key not in _result.keys():
                     _result[_key] = dict()
 
-                if "size" in _result[_key].keys() and _result[_key]["size"] != _size:
+                if "Size" in _result[_key].keys() and _result[_key]["Size"] != _size:
                     raise ValueError("Sizes not match for '%s' in '%s'" % (_key,self._local))
 
-                _result[_key]["size"] = _size
+                _result[_key]["Size"] = _size
                 _result[_key][_field] = _hash
 
                 if "sub" not in _result[_key].keys():

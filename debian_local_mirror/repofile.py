@@ -97,7 +97,7 @@ class RepoFile(object):
             return True
 
         for _ext in self._ext:
-            _fullpth = self._local + _ext;
+            _fullpth = self._local + _ext
             if not os.path.exists(_fullpth):
                 if not self._absent_ok:
                     raise FileNotFoundError(_fullpth)
@@ -162,6 +162,7 @@ class RepoFile(object):
         :param mode: open mode
         :type mode: str
         """
+        self.close()
         self._fd = open(self._local, mode)
 
     def get_local_paths(self):
@@ -171,7 +172,7 @@ class RepoFile(object):
         _result = list()
 
         for _ext in self._ext:
-            _fullpth = self._local + _ext;
+            _fullpth = self._local + _ext
 
             if os.path.exists(_fullpth):
                 _result.append(_fullpth)

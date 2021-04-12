@@ -2,6 +2,7 @@ import logging
 from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
 from .repofile_checksum import RepoFileWithCheckSum
+from .repofile_packages import RepoFilePackages
 from tempfile import NamedTemporaryFile
 import os
 
@@ -75,7 +76,7 @@ class MirrorProcessor(object):
         for _section in mirror.get("sections"):
             for _arch in _archs:
                 logging.info("Processing section '%s', architecture '%s'" % (_section, _arch))
-                self._process_section_architecture(mirror, _section, _arch)
+                self._process_section_architecture(mirror, distr, _section, _arch)
         
     def _get_release_file(self, mirror, distr):
         """
@@ -184,15 +185,35 @@ class MirrorProcessor(object):
                     logging.info("Removing obsolete '%s'" % _fullpth)
                     os.remove(_fullpth)
 
-    def _process_section_architecture(self, mirror, section, arch):
+    def _process_section_architecture(self, mirror, distr, section, arch):
         """
         Get parse packages index and synchronize all packages
         :param mirror: full mirror configuration
         :type mirror: dict
+        :param distr: distributive code
+        :type distr: str
         :param section: secton
         :type section: str
         :param arch: architecture
         :type arch: str
         """
-        return
+        _pkgs = RepoFilePackages(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                sub=["dists", distr, section, "binary-%s" % arch, "Packages"])
+
+        _pkgs.synchronize()
+        _pkgs.open()
+        
+        for _fl in _pkgs.get_subfiles():
+            logging.info("Processing file: %s" % _fl.get("Filename"))
+            _subfl = RepoFileWithCheckSum(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                fdict=_fl)
+
+            if(_subfl.synchronize()):
+                self._files.write('\n' + '\n'.join(_subfl.get_local_paths()))
+
+        _pkgs.close()
 

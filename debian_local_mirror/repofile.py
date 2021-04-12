@@ -117,8 +117,7 @@ class RepoFile(object):
         :type absent_ok: bool
         """
         _web = requests.Session()
-        # SSL verification is temporary disabled because of many requests+certifi issues on them
-        _rsp = _web.get(remote, stream = True, verify = False)
+        _rsp = _web.get(remote, stream = True)
 
         if (os.path.exists(local)):
             os.remove(local)

@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 import os
 import logging
 from copy import deepcopy
+import shutil
 
 class TrashRemover(object):
     """
@@ -45,6 +46,7 @@ class TrashRemover(object):
                     _fl_out.write('\n')
 
                 _fl_out.write('\n'.join(_lines))
+                _fl_out.flush()
                 
                 if _result and _lines != _prev_lines:
                     logging.info("Result will be false since lines differ")
@@ -73,6 +75,7 @@ class TrashRemover(object):
                 _first_chunk = False
 
                 _fl_out.write('\n'.join(_lines))
+                _fl_out.flush()
                 
                 if _result and _lines != _prev_lines:
                     logging.info("Result will be false since lines differ")
@@ -81,6 +84,7 @@ class TrashRemover(object):
                 _lines = list()
                 _prev_lines = list()
 
+        _fl_out.flush()
         self._fl_list.close()
         self._fl_list = _fl_out
         return _result
@@ -137,10 +141,11 @@ class TrashRemover(object):
             _fl_out.write(_line)
 
         if _result:
-            _fl_out.write(self._fl_list.read())
+            shutil.copyfileobj(self._fl_list, _fl_out)
 
-        _self._fl_list.close()
-        _self._fl_list = _fl_out
+        _fl_out.flush()
+        self._fl_list.close()
+        self._fl_list = _fl_out
 
         return _result
 

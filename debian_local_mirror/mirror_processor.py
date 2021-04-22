@@ -3,6 +3,7 @@ from .mirror_config import MirrorsConfig
 from .repofile_release import RepoFileRelease, RepoFileInRelease
 from .repofile_checksum import RepoFileWithCheckSum
 from .repofile_packages import RepoFilePackages
+from .trash_remover import TrashRemover
 from tempfile import NamedTemporaryFile
 import os
 
@@ -137,6 +138,7 @@ class MirrorProcessor(object):
 
             if(_subfl.synchronize()):
                 self._files.write('\n' + '\n'.join(_subfl.get_local_paths()))
+                self._files.flush()
 
         rlfl.close()
 
@@ -151,6 +153,7 @@ class MirrorProcessor(object):
         _tr.sort_temp()
         _tr.remove_trash()
         self._files = _tr.get_temp()
+        raise ValueError("FuckOff")
 
     def _process_section_architecture(self, mirror, distr, section, arch):
         """
@@ -184,6 +187,7 @@ class MirrorProcessor(object):
 
             if(_subfl.synchronize()):
                 self._files.write('\n' + '\n'.join(_subfl.get_local_paths()))
+                self._files.flush()
 
         _pkgs.close()
 

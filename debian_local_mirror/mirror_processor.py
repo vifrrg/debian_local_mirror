@@ -153,7 +153,6 @@ class MirrorProcessor(object):
         _tr.sort_temp()
         _tr.remove_trash()
         self._files = _tr.get_temp()
-        raise ValueError("FuckOff")
 
     def _process_section_architecture(self, mirror, distr, section, arch):
         """

@@ -38,7 +38,7 @@ class TrashRemover(object):
             _line = self._fl_list.readline()
 
             if not _line:
-                logging.info("Empty line, sorting last chunk")
+                logging.info("End of file, sorting last chunk")
                 _prev_lines = deepcopy(_lines)
                 _lines.sort()
 
@@ -55,6 +55,10 @@ class TrashRemover(object):
                 break
 
             _line = _line.strip()
+
+            if not _line:
+                logging.debug("Empty line")
+                continue
 
             if _line not in _lines:
                 _lines.append(_line)
@@ -123,11 +127,12 @@ class TrashRemover(object):
                 break
 
             _line = _line.strip()
-            logging.log(3, "Comparison: '%s' <==> '%s'" % (path, _line))
 
             if not _line:
                 logging.log(3, "Empty line")
                 continue
+
+            logging.log(3, "Comparison: '%s' <==> '%s'" % (path, _line))
 
             if _line == path:
                 logging.log(3, "Returning True")
@@ -141,6 +146,9 @@ class TrashRemover(object):
             _fl_out.write(_line)
 
         if _result:
+            if not _first_line:
+                _fl_out.write('\n')
+
             shutil.copyfileobj(self._fl_list, _fl_out)
 
         _fl_out.flush()

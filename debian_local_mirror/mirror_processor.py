@@ -140,36 +140,6 @@ class MirrorProcessor(object):
 
         rlfl.close()
 
-    def _is_in_files_list(self, path):
-        """
-        Check if a path was synchronized during the session
-        :param path: path to check
-        :type path: str
-        """
-        logging.log(3, "Searching '%s' in files list..." % path)
-
-        if not self._files:
-            logging.log(3, "_files list is falsy")
-            return False
-
-        self._files.seek(0, 0)
-
-        while True:
-            _line = self._files.readline()
-
-            if not _line:
-                logging.log(3, "Empty line")
-                break
-
-            _line = _line.strip()
-            logging.log(3, "Comparison: '%s' <==> '%s'" % (path, _line))
-
-            if _line == path:
-                logging.log(3, "Returning True")
-                return True
-
-        return False
-
     def _remove_trash(self, root):
         """
         Housekeeping for single mirror
@@ -177,13 +147,10 @@ class MirrorProcessor(object):
         :type root: str
         """
         logging.debug("Removing obsolete files...")
-        for _root, _dirs, _files in os.walk(root):
-            for _file in _files:
-                _fullpth = os.path.join(_root, _file)
-
-                if not self._is_in_files_list(_fullpth):
-                    logging.info("Removing obsolete '%s'" % _fullpth)
-                    os.remove(_fullpth)
+        _tr = TrashRemover(self._files, root)
+        _tr.sort_temp()
+        _tr.remove_trash()
+        self._files = _tr.get_temp()
 
     def _process_section_architecture(self, mirror, distr, section, arch):
         """

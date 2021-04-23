@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import posixpath
 
 class KeyAbsenceError(Exception):
     def __init__(self, key):
@@ -16,7 +18,9 @@ class MirrorsConfig(object):
         :type path: str
         """
 
-        with open(path) as _fl_in:
+        self._path = path
+
+        with open(self._path) as _fl_in:
             self._cfg = json.load(_fl_in)
 
         self._validate()
@@ -44,6 +48,13 @@ class MirrorsConfig(object):
         # these are required
         for _key in ["source", "destination"]:
             self._validate_value_type(cfg, _key, str)
+
+        # convert destination to absolute path
+
+        if not os.path.isabs(cfg["destination"]):
+            cfg["destination"] = os.path.join(
+                os.path.dirname(os.path.abspath(self._path)), 
+                cfg["destination"].replace(posixpath.sep, os.path.sep))
 
         # these too, but value have to be list
         for _key in ["distributives", "sections"]:
@@ -90,4 +101,43 @@ class MirrorsConfig(object):
         Return list of mirror configurations
         """
         return self._cfg
+
+    def _mirror_to_sources_list(self, mirror):
+        """
+        Convert mirror configuration to list of strings for APT
+        :param mirror: mirror configuration
+        :type mirror: dict
+        :return: list of strings for APT
+        """
+        _result = list()
+
+        for _d in mirror.get("distributives"):
+            _line = "deb "
+
+            _arch = mirror.get("architectures")
+
+            if isinstance(_arch, list) and len(_arch) == 1:
+                _line += "[arch=%s] " % _arch[0]
+
+            _line += "file:///%s " % mirror.get("destination") # path is converted to absolute while reading it
+            _line += _d + ' '
+            _line += ' '.join(mirror.get("sections"))
             
+            logging.debug("Appending line: '%s'" % _line)
+            _result.append(_line)
+
+        return _result
+    
+    def make_sources_list(self):
+        """
+        Generate sources.list entries for APT
+        :return: list of strings
+        """
+        logging.debug("Sources list generation started")
+
+        _result = list()
+
+        for _mr in self.get_mirrors():
+            _result += self._mirror_to_sources_list(_mr)
+
+        return _result

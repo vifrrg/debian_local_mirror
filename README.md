@@ -40,4 +40,13 @@ The only parameter required is a configuration file:
     }
 ]
 ```
-**WARNING**: all values are case-sensitive!
+**WARNINGS**: 
+- all values are case-sensitive
+- relative path in "destination" section may be used, but will be considered relative to *config* path, **not to corrent directory**
+
+## CREATING SOURCES LIST FOR APT
+
+    $   python -m debian_local_mirror.sources_list -c config.json -o sources.list
+
+List with *file:///* URLs will be created - is useful for local machine.
+It is hard to predict FQDN or IP address of a machine and web-server settings to generate *sources.list* for network usage, but this may be done in the future.

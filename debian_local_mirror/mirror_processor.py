@@ -44,7 +44,7 @@ class MirrorProcessor(object):
         for _dist in mirror.get("distributives"):
             self._process_single_distributive(mirror, _dist)
 
-        self._remove_trash(os.path.abspath(mirror.get("destination")))
+        self._remove_trash(mirror.get("destination"))
         self._files.close()
         self._files = None
 

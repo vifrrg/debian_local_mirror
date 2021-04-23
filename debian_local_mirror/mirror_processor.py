@@ -148,9 +148,8 @@ class MirrorProcessor(object):
         :param root: path to root folder to process
         :type root: str
         """
-        logging.debug("Removing obsolete files...")
+        logging.debug("Removing obsolete files preparation...")
         _tr = TrashRemover(self._files, root)
-        _tr.sort_temp()
         _tr.remove_trash()
         self._files = _tr.get_temp()
 

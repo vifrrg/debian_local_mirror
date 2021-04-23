@@ -20,7 +20,8 @@ class TrashRemover(object):
         :type src_dir: str
         """
 
-        self._fl_list = fl_list
+        self._fl_should = fl_list
+        self._fl_current = None
         self._src_dir = os.path.abspath(src_dir)
 
     def _sort_compare_lines(self, lines, fl_out=None, compare=False, first_chunk=False):
@@ -55,17 +56,19 @@ class TrashRemover(object):
 
         return _result
 
-    def _sort_temp(self, start=0, chunk=100):
+    def _sort_temp_pass(self, fl_in, start=0, chunk=100):
         """
         Single pass of sort temporary file.
+        :param fl_in: input file-like object
         :param start: start line for sorting
         :type start: int
         :param chunk: chunk size, in lines
         :type chunk: int
+        :return: tuple (bool result, file-like fl_out)
         """
         _fl_out = NamedTemporaryFile(mode='w+')
         logging.info("Sort iteration: chunk = %d, start = %d" % (chunk, start))
-        self._fl_list.seek(0, 0)
+        fl_in.seek(0, 0)
 
         _lines = list()
         _prev_lines = list()
@@ -74,7 +77,7 @@ class TrashRemover(object):
         _first_chunk = True
 
         while True:
-            _line = self._fl_list.readline()
+            _line = fl_in.readline()
 
             if not _line:
                 logging.info("End of file, sorting last chunk")
@@ -111,87 +114,108 @@ class TrashRemover(object):
                 _lines = list()
 
         _fl_out.flush()
-        self._fl_list.close()
-        self._fl_list = _fl_out
-        return _result
+        fl_in.close()
+        return _result, _fl_out
 
-    def sort_temp(self):
+    def _sort_temp(self, fl):
         """
         Sorting a temporary file given
+        :param fl: file-like temp object
+        :return: sorted file-like object 
         """
         _result = False
         _start = 0
         _chunk = 55555
+        #TODO: determine chunk size dynamically depending on memory available
+        _fl_out = fl
 
         while not _result:
-            _result = self._sort_temp(_start, _chunk)
+            _result, _fl_out = self._sort_temp_pass(fl_in=_fl_out, start=_start, chunk=_chunk)
             _start = 0 if _start else 33333
             _chunk = _start*2 if _start else 55555
 
-    def _is_in_files_list(self, path):
-        """
-        Check if a path was synchronized during the session
-        :param path: path to check
-        :type path: str
-        """
-        logging.log(3, "Searching '%s' in files list..." % path)
-
-        self._fl_list.seek(0, 0)
-        _fl_out = NamedTemporaryFile(mode='w+')
-        _result = False
-        _first_line = True
-
-        while True:
-            _line = self._fl_list.readline()
-
-            if not _line:
-                logging.log(3, "End of file")
-                break
-
-            _line = _line.strip()
-
-            if not _line:
-                logging.log(3, "Empty line")
-                continue
-
-            logging.log(3, "Comparison: '%s' <==> '%s'" % (path, _line))
-
-            if _line == path:
-                logging.log(3, "Returning True")
-                _result = True
-                break
-
-            if not _first_line:
-                _fl_out.write('\n')
-
-            _first_line = False
-            _fl_out.write(_line)
-
-        if _result:
-            if not _first_line:
-                _fl_out.write('\n')
-
-            shutil.copyfileobj(self._fl_list, _fl_out)
-
-        _fl_out.flush()
-        self._fl_list.close()
-        self._fl_list = _fl_out
-
-        return _result
-
+        return _fl_out
 
     def remove_trash(self):
         """
         Remove files not found in our list
         """
+        self._make_current_files_list()
+        logging.info("Starting sorting legal files list...")
+        self._fl_should = self._sort_temp(self._fl_should)
+        logging.info("Starting sorting current files list...")
+        self._fl_current = self._sort_temp(self._fl_current)
+
+        #now we have two sorted files, starting comparison
+        logging.debug("Starting lists comparison")
+        self._fl_should.seek(0, 0)
+        self._fl_current.seek(0, 0)
+
+        _pth_legal = None
+        _pth_current = None
+
+        while True:
+            if not _pth_legal:
+                _pth_legal = self._fl_should.readline()
+
+            if not _pth_current:
+                _pth_current = self._fl_current.readline()
+
+            if not _pth_legal and not _pth_current:
+                logging.info("Trash cleanup finished")
+                return
+
+            if _pth_legal:
+                _pth_legal = _pth_legal.strip()
+            if _pth_current:
+                _pth_current = _pth_current.strip()
+
+            # check for empty line
+            if not _pth_legal or not _pth_current:
+                logging.warning("One of lines is empty, may be a sorting bug!")
+                logging.warning("Legal: '%s'" % _pth_legal)
+                logging.warning("Current: '%s'" % _pth_current)
+                continue
+
+            if _pth_legal == _pth_current:
+                logging.debug("Equivalent found: '%s'" % _pth_legal)
+                _pth_legal = None
+                _pth_current = None
+                continue
+
+            if not os.path.exists(_pth_current):
+                logging.warning("Path is in current list but does not exist. Bug?")
+                logging.warning(_pth_current)
+                _pth_current = None
+                continue 
+
+            logging.info("Removing obsolete '%s'" % _pth_current)
+            os.remove(_pth_current)
+            _pth_current = None
+
+    def _make_current_files_list(self):
+        """
+        make current files list
+        """
+        _first_line = True
+        logging.info("Making current files list...")
+        self._fl_current = NamedTemporaryFile(mode='w+')
+        self._fl_current.seek(0, 0)
+
         for _root, _dirs, _files in os.walk(self._src_dir):
             for _file in _files:
                 _fullpth = os.path.join(_root, _file)
+                logging.log(3, "Append current file: '%s'" % _fullpth)
 
-                if not self._is_in_files_list(_fullpth):
-                    logging.info("Removing obsolete '%s'" % _fullpth)
-                    os.remove(_fullpth)
+                if not _first_line:
+                    self._fl_current.write('\n')
+
+                _first_line = False
+                self._fl_current.write(_fullpth)
+
+        self._fl_current.flush()
+        logging.info("Current files list is ready")
 
     def get_temp(self):
-        return self._fl_list
+        return self._fl_should
 

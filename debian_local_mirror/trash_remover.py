@@ -23,7 +23,46 @@ class TrashRemover(object):
         self._fl_list = fl_list
         self._src_dir = os.path.abspath(src_dir)
 
+    def _sort_compare_lines(self, lines, fl_out=None, compare=False, first_chunk=False):
+        """
+        Sort and put out lines
+        By-condition comparison of sorted list with non-sorted.
+        :param lines: lines to sort
+        :type lines: list of str
+        :param fl_out: file-like object to put sorted lines to
+        :param compare: do comparison
+        :type compare: bool
+        :param first_chunk: Process it as first chunk or not. First chunk does not add newline before it
+        :type first_chunk: boolean
+        :return: result of comparison or False if comparison is skipped
+        """
+        _result = compare
+
+        if _result:
+            _prev_lines = deepcopy(lines)
+        
+        lines.sort()
+
+        if not first_chunk:
+            fl_out.write('\n')
+
+        fl_out.write('\n'.join(lines))
+        fl_out.flush()
+                
+        if _result and lines != _prev_lines:
+            logging.info("Result will be false since lines differ")
+            _result = False
+
+        return _result
+
     def _sort_temp(self, start=0, chunk=100):
+        """
+        Single pass of sort temporary file.
+        :param start: start line for sorting
+        :type start: int
+        :param chunk: chunk size, in lines
+        :type chunk: int
+        """
         _fl_out = NamedTemporaryFile(mode='w+')
         logging.info("Sort iteration: chunk = %d, start = %d" % (chunk, start))
         self._fl_list.seek(0, 0)
@@ -39,19 +78,12 @@ class TrashRemover(object):
 
             if not _line:
                 logging.info("End of file, sorting last chunk")
-                _prev_lines = deepcopy(_lines)
-                _lines.sort()
-
-                if not _first_chunk:
-                    _fl_out.write('\n')
-
-                _fl_out.write('\n'.join(_lines))
-                _fl_out.flush()
-                
-                if _result and _lines != _prev_lines:
-                    logging.info("Result will be false since lines differ")
-                    _result = False
-
+                _result = self._sort_compare_lines(
+                    lines=_lines, 
+                    fl_out=_fl_out,
+                    compare=_result,
+                    first_chunk=_first_chunk)
+                _first_chunk = False
                 break
 
             _line = _line.strip()
@@ -70,23 +102,13 @@ class TrashRemover(object):
                     or (_catch_start and len(_lines) == start):
                 _catch_start = False
                 logging.info("Sorting next chunk")
-                _prev_lines = deepcopy(_lines)
-                _lines.sort()
-
-                if not _first_chunk:
-                    _fl_out.write('\n')
-
+                _result = self._sort_compare_lines(
+                    lines=_lines, 
+                    fl_out=_fl_out,
+                    compare=_result,
+                    first_chunk=_first_chunk)
                 _first_chunk = False
-
-                _fl_out.write('\n'.join(_lines))
-                _fl_out.flush()
-                
-                if _result and _lines != _prev_lines:
-                    logging.info("Result will be false since lines differ")
-                    _result = False
-
                 _lines = list()
-                _prev_lines = list()
 
         _fl_out.flush()
         self._fl_list.close()

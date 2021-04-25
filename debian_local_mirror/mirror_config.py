@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import posixpath
+from copy import deepcopy
+from .repofile_release import RepoFileRelease, RepoFileInRelease
 
 class KeyAbsenceError(Exception):
     def __init__(self, key):
@@ -102,6 +104,33 @@ class MirrorsConfig(object):
         """
         return self._cfg
 
+    def _get_release_file(self, mirror, distr):
+        """
+        Get instance of Release / InRelease file
+        Perhaps both, but at least one
+        Can not be used in mirror since we have to 
+        use existant file only, without downloading
+        :param mirror: mirror configuration
+        :type mirror: dict
+        :param distr: distributive name
+        :type distr: str
+        """
+        _candidates = [
+            RepoFileRelease(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                sub=["dists", distr, "Release"]),
+            RepoFileInRelease(
+                local=mirror.get("destination"),
+                remote=mirror.get("source"),
+                sub=["dists", distr, "InRelease"]) ]
+
+        for _rlfl in _candidates:
+            if _rlfl.check_after():
+                return _rlfl
+
+        return None
+
     def _mirror_to_sources_list(self, mirror):
         """
         Convert mirror configuration to list of strings for APT
@@ -119,9 +148,20 @@ class MirrorsConfig(object):
             if isinstance(_arch, list) and len(_arch) == 1:
                 _line += "[arch=%s] " % _arch[0]
 
-            _line += "file:///%s " % mirror.get("destination") # path is converted to absolute while reading it
+            _line += "file://%s " % mirror.get("destination") # path is converted to absolute while reading it
             _line += _d + ' '
-            _line += ' '.join(mirror.get("sections"))
+
+            _sections = deepcopy(mirror.get("sections"))
+
+            _rlfl = self._get_release_file(mirror, _d)
+            if _rlfl:
+                _rlfl.open()
+                _tmps = _rlfl.get_sections()
+
+                if _tmps and len(_tmps):
+                    _sections = list(set(_sections) & set(_tmps))
+
+            _line += ' '.join(_sections)
             
             logging.debug("Appending line: '%s'" % _line)
             _result.append(_line)

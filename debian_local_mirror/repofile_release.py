@@ -91,6 +91,12 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         return self._data.get('No-Support-for-Architecture-all', '').lower() in ['yes', 'true']
 
+    def get_sections(self):
+        """
+        Return sections list
+        """
+        return list(map(lambda x: posixpath.basename(x), self._data.get('Components')))
+
     def get_subfiles(self):
         """
         Return dictionary with files list

@@ -39,6 +39,12 @@ class MirrorProcessor(object):
         :type mirror: dict
         """
 
+        if not mirror.get("enabled", True):
+            logging.info("Mirroring '%s' is disabled" % mirror.get("source"))
+            return
+
+        logging.info("Processing mirror for '%s'" % mirror.get("source"))
+
         # loop by distributives and architectures
         self._files = NamedTemporaryFile(mode = 'w+')
         for _dist in mirror.get("distributives"):

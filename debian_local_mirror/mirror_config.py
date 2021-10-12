@@ -178,6 +178,10 @@ class MirrorsConfig(object):
         _result = list()
 
         for _mr in self.get_mirrors():
+            if not _mr.get("enabled", True):
+                logging.debug("Mirror '%s' is disabled" % _mr.get("source"))
+                continue
+
             _result += self._mirror_to_sources_list(_mr)
 
         return _result

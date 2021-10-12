@@ -32,7 +32,8 @@ The only parameter required is a configuration file:
 **JSON** format is used. Here is an example:
 ```
 [
-    {   "source" : "some.debian.server/path",
+    {   "enabled": true,
+        "source" : "some.debian.server/path",
         "destination" : "/some/local/folder",
         "distributives" : [ "stable", "oldstable", "anything_else" ],
         "sections" : [ "main", "contrib", "non-free", "anything_else" ],

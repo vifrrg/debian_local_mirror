@@ -15,14 +15,16 @@ class MirrorProcessor(object):
     """
     The main processor class
     """
-    def __init__(self, config):
+    def __init__(self, args):
         """
         Main process initialzation
-        :param config: path to JSON configuration file
-        :type config: str
+        :param args: arguments for processing
+        :type config: argparse.NameSpace
         """
-        logging.debug("Config path provided: '%s'" % config)
-        self._config = MirrorsConfig(config)
+        self._args = args
+        _cfg = os.path.abspath(self._args.config_fl)
+        logging.info("Config path provided: '%s'" % _cfg)
+        self._config = MirrorsConfig(_cfg)
         self._files = None
 
     def process(self):
@@ -82,7 +84,7 @@ class MirrorProcessor(object):
         if not _rlfl:
             self._make_release_for_distr(mirror, distr)
 
-        self._process_release(mirror, _rlfl)
+        self._process_release(mirror, _rlfl); raise ValueError("FuckOff")
 
         _archs = mirror.get("architectures")
 
@@ -94,6 +96,13 @@ class MirrorProcessor(object):
             for _arch in _archs:
                 logging.info("Processing section '%s', architecture '%s'" % (_section, _arch))
                 self._process_section_architecture(mirror, distr, _section, _arch)
+
+    @property
+    def _gpg(self):
+        """
+        Init GnuPG object
+        """
+        return None
         
     def _get_release_file(self, mirror, distr):
         """
@@ -119,10 +128,18 @@ class MirrorProcessor(object):
             if not _tmprlfl.synchronize():
                 continue
 
+            if self._args.remove_valid_until:
+                _tmprlfl.remove_valid_until()
+
+            if self._args.resign_key:
+                _tmprlfl.sign(self._gpg)
+
             if not _rlfl:
                 _rlfl = _tmprlfl
 
             self._files.write('\n' + '\n'.join(_tmprlfl.get_local_paths()))
+
+        raise ValueError("FuckOff")
 
         return _rlfl
 

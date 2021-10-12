@@ -4,6 +4,7 @@ from tempfile import TemporaryFile
 import logging
 import re
 import posixpath
+import os
 
 class RepoFileRelease(RepoFile, DebianMetaParser):
     """
@@ -146,6 +147,76 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         return _result
 
+    def remove_signature(self):
+        """
+        Removes GPG signature file
+        """
+        for _ext in self._ext:
+            if not _ext:
+                continue
+
+            _fullpth = self._local + _ext
+
+            if not os.path.exists(_fullpth):
+                continue
+
+            logging.debug("Removing '%s'" % _fullpth)
+
+            os.remove(_fullpth)
+
+    def remove_valid_until(self):
+        """
+        Remove 'Valid-Until' Tag
+        Removes signature also
+        """
+        self.open()
+        self.remove_signature()
+
+        if "Valid-Until" in self._data.keys():
+            del(self._data["Valid-Until"])
+
+        self.close()
+        self.write()
+
+    def write(self):
+
+        with open(self._local, mode="wt") as _fl_out:
+
+            for _key in self._data.keys():
+                logging.debug("Writing key value for '%s'" % _key)
+                _value = self._data.get(_key)
+
+                if not isinstance(_value, list):
+                    _fl_out.write("%s: %s\n" % (_key, _value))
+                    continue
+
+                if not _key in self._checksums_fields:
+                    _fl_out.write("%s: %s\n" %(_key, " ".join(_value)))
+                    continue
+
+                _fl_out.write("%s:\n" % _key)
+
+                for _vl in _value:
+                    _size = "%d" % _vl.get("Size")
+
+                    while len(_size) < 10:
+                        _size = " %s" % _size
+
+                    _fl_out.write(" %s %s %s\n" % (_vl.get("hash"), _size, _vl.get("Filename")))
+
+    def sign(self, gpg):
+        """
+        Sign ourselves with gpg object given
+        :param gpg: GnuPG object
+        :type gpg: pygpgme
+        """
+        self.close()
+
+        for _ext in self._ext:
+            _out = self._local + ext
+
+        self.open()
+
 class RepoFileInRelease(RepoFileRelease):
     """
     Helper to process InRelease file with PGP signature removed
@@ -206,3 +277,11 @@ class RepoFileInRelease(RepoFileRelease):
         self._fd.seek(0, 0)
         self._data = self.parse()
 
+    def sign(self, gpg):
+        """
+        Sign ourselves with gpg object given
+        :param gpg: GnuPG object
+        :type gpg: pygpgme
+        """
+        self.close()
+        self.open()

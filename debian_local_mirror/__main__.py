@@ -2,7 +2,6 @@
 
 import argparse
 import logging
-import os
 from .mirror_processor import MirrorProcessor
 
 _ap = argparse.ArgumentParser(description="Create partail local debian mirror")
@@ -18,8 +17,12 @@ _ag = _ap.parse_args()
 logging.basicConfig(
     format="%(asctime)s: %(levelname)s: %(filename)s: %(funcName)s: %(lineno)d: %(message)s", 
     level=_ag.log_level)
-_cfg = os.path.abspath(_ag.config_fl)
 logging.info("Log level is set to %d" % _ag.log_level)
-logging.info("Loading configuration: '%s'" % _cfg)
 
-MirrorProcessor(config=_cfg).process()
+if _ag.remove_valid_until and not _ag.resign_key:
+    raise ValueError("'--resign-key' is necessary with '--remove-valid-until'")
+
+if _ag.resign_key and not _ag.key_passphrase:
+    raise ValueError("--resign-key' is useless without '--key-passphrase'")
+
+MirrorProcessor(args=_ag).process()

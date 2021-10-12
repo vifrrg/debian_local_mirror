@@ -213,7 +213,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
 
         for _ext in self._ext:
-            _out = self._local + ext
+            _out = self._local + _ext
 
         self.open()
 

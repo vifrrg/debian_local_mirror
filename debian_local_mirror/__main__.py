@@ -25,4 +25,8 @@ if _ag.remove_valid_until and not _ag.resign_key:
 if _ag.resign_key and not _ag.key_passphrase:
     raise ValueError("--resign-key' is useless without '--key-passphrase'")
 
+if _ag.resign_key:
+    logging.info("Trying to imoprt python interface for gpgme")
+    import gpg
+
 MirrorProcessor(args=_ag).process()

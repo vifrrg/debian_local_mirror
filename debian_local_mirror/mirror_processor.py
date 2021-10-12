@@ -4,8 +4,9 @@ from .repofile_release import RepoFileRelease, RepoFileInRelease
 from .repofile_checksum import RepoFileWithCheckSum
 from .repofile_packages import RepoFilePackages
 from .trash_remover import TrashRemover
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 import os
+import gpg
 
 class MirrorError(Exception):
     def __init__(self, remote, local, message):
@@ -26,6 +27,8 @@ class MirrorProcessor(object):
         logging.info("Config path provided: '%s'" % _cfg)
         self._config = MirrorsConfig(_cfg)
         self._files = None
+        self.__gpg_tmp_dir = None
+        self.__gpg_context = None
 
     def process(self):
         """
@@ -102,7 +105,34 @@ class MirrorProcessor(object):
         """
         Init GnuPG object
         """
-        return None
+        if self.__gpg_context:
+            return self.__gpg_context
+
+        logging.debug("Creating new GPG context")
+        self.__gpg_tmp_dir = TemporaryDirectory(prefix="debian_local_mirror_", suffix="_gpg")
+        logging.debug("Home for GPG: '%s'" % self.__gpg_tmp_dir.name)
+        
+        if not os.path.exists(self.__gpg_tmp_dir.name):
+            raise FileNotFoundError(self.__gpg_tmp_dir.name)
+
+        self.__gpg_context = gpg.Context(
+                armor=True,
+                textmode=True,
+                offline=True,
+                pinentry_mode=gpg.constants.PINENTRY_MODE_LOOPBACK,
+                home_dir=self.__gpg_tmp_dir.name)
+
+        _kpth = os.path.abspath(self._args.resign_key)
+        logging.debug("Importing key: '%s'" % _kpth)
+
+        with open(_kpth, mode='rb') as _keyfl_in:
+            _rslt = self.__gpg_context.key_import(_keyfl_in.read())
+            print(_rslt, self.__gpg_context)
+            logging.debug("key import status: '%s'" % _rslt)
+
+        raise ValueError("FuckOff")
+
+        return self.__gpg_context
         
     def _get_release_file(self, mirror, distr):
         """

@@ -54,6 +54,17 @@ class MirrorProcessor(object):
         self._files.close()
         self._files = None
 
+    def _make_release_for_distr(self, mirror, distr):
+        """
+        Special algorithm for processing mirror without Release file
+        :param mirror: mirror configuration
+        :type mirror: dict
+        :param distr: distributive name
+        :type distr: str
+        """
+        raise MirrorError(mirror.get("source"), mirror.get("destination"), 
+                "Release files not found for distributive '%s'" % distr)
+
     def _process_single_distributive(self, mirror, distr):
         """
         Process single distirbutive record
@@ -69,8 +80,7 @@ class MirrorProcessor(object):
         _rlfl = self._get_release_file(mirror, distr)
 
         if not _rlfl:
-            raise MirrorError(mirror.get("source"), mirror.get("destination"), 
-            "Release files not found for distributive '%s'" % distr)
+            self._make_release_for_distr(mirror, distr)
 
         self._process_release(mirror, _rlfl)
 

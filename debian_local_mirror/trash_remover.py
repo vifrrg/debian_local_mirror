@@ -171,6 +171,10 @@ class TrashRemover(object):
             _pth_legal = _pth_legal.strip()
             _pth_current = _pth_current.strip()
 
+            if not _pth_current:
+                _pth_current = None
+                continue
+
             if _pth_legal and not os.path.exists(_pth_legal):
                 logging.info("Path '%s' is legal but does not exist" % _pth_legal)
                 _pth_legal = None
@@ -187,7 +191,7 @@ class TrashRemover(object):
                 logging.warning(_pth_current)
                 logging.warning(_pth_legal)
                 _pth_current = None
-                continue 
+                continue
 
             logging.info("Removing obsolete '%s'" % _pth_current)
             os.remove(_pth_current)

@@ -42,8 +42,12 @@ class DebianMetaParser(object):
         value = self._convert_list_field(key, value)
 
         if isinstance(result, dict):
-            result[key] = value
-            return result
+            if key not in result.keys():            
+                result[key] = value
+                return result
+
+            logging.info("Duplicated keys found: '%s', converting result to list" % key)
+            result = [result]
         
         if isinstance(result, list):
             result[-1][key] = value
@@ -95,15 +99,13 @@ class DebianMetaParser(object):
                     logging.debug("Unexpeced empty line in '%s'" % self._local)
                     continue
 
-                logging.debug("Empty line found, list conversion check")
+                logging.debug("Empty line found")
 
                 _result = self._append_result(_result, _key, _value)
 
-                if isinstance(_result, dict):
-                    logging.debug("Converting result to list")
-                    _result = [_result]
-
-                _append_new_dict = True
+                if isinstance(_result, list):
+                    logging.debug("Result has been converted to list")
+                    _append_new_dict = True
 
                 _key = ""
                 _value = ""

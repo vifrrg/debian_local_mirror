@@ -94,7 +94,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
         if _data and 'Filename' in _data.keys():
             # at least Filename is necessary for correct data
-            _result.append(self._data)
+            _result.append(_data)
 
         logging.debug("Parsed data has been converted to list")
         return _result
@@ -112,6 +112,11 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         _result = list()
 
         for _fld in self._data:
+
+            if not isinstance(_fld, dict):
+                raise FormatError(self._remote, "Something wrong: list contains non-dictionary: '%s'. Bug?" % type(_fld))
+                continue
+
             if "sub" not in _fld.keys():
                 _fld["sub"] = _fld.get("Filename").split(posixpath.sep)
                 logging.debug("Adding %s as subpath" % posixpath.sep.join(_fld["sub"]))

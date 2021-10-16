@@ -33,7 +33,7 @@ class RepoFile(object):
         self._sub = sub
         self._remote = posixpath.join(remote, posixpath.sep.join(sub))
         self._base_local = os.path.abspath(local)
-        self._local = os.path.join(self._base_local, os.path.sep.join(self._sub))
+        self._local = os.path.abspath(os.path.join(self._base_local, os.path.sep.join(self._sub)))
         self._absent_ok = absent_ok
         self._ext = extensions
         logging.debug("File: '%s' ==> '%s'" % (self._remote, self._local))

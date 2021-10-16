@@ -271,6 +271,8 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                     _hashobj = hashlib.sha1()
                 elif _cs.lower() == "sha256":
                     _hashobj = hashlib.sha256()
+                elif _cs.lower() == "sha512":
+                    _hashobj = hashlib.sha512()
 
                 with open(_pkg, mode="rb") as _fd:
                     while True:

@@ -53,7 +53,8 @@ class RepoFile(object):
                 "MD5Sum",
                 "MD5sum",
                 "SHA1",
-                "SHA256"
+                "SHA256",
+                "SHA512"
                 ] 
 
     def check_create_local_path(self):

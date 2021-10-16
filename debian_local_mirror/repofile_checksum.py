@@ -65,6 +65,8 @@ class RepoFileWithCheckSum(RepoFile):
             _hashobj = hashlib.sha1()
         elif cs_type == "sha256":
             _hashobj = hashlib.sha256()
+        elif cs_type == "sha512":
+            _hashobj = hashlib.sha512()
         
         if not _hashobj:
             raise ValueError("Checksum of type '%s' is not (yet?) supported" % cs_type)

@@ -213,7 +213,11 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
 
         for _ext in self._ext:
+            if not _ext:
+                continue
+
             _out = self._local + _ext
+            gpg.sign_file(file_path=self._local, signature_output=_out)
 
         self.open()
 
@@ -284,4 +288,5 @@ class RepoFileInRelease(RepoFileRelease):
         :type gpg: pygpgme
         """
         self.close()
+        gpg.sign_file(file_path=self._local)
         self.open()

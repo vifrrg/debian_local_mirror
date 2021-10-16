@@ -6,7 +6,6 @@ from .repofile_packages import RepoFilePackages
 from .trash_remover import TrashRemover
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 import os
-import gpg
 
 class MirrorError(Exception):
     def __init__(self, remote, local, message):
@@ -27,8 +26,7 @@ class MirrorProcessor(object):
         logging.info("Config path provided: '%s'" % _cfg)
         self._config = MirrorsConfig(_cfg)
         self._files = None
-        self.__gpg_tmp_dir = None
-        self.__gpg_context = None
+        self.__gpg_signer = None
 
     def process(self):
         """
@@ -87,7 +85,7 @@ class MirrorProcessor(object):
         if not _rlfl:
             self._make_release_for_distr(mirror, distr)
 
-        self._process_release(mirror, _rlfl); raise ValueError("FuckOff")
+        self._process_release(mirror, _rlfl);
 
         _archs = mirror.get("architectures")
 
@@ -105,34 +103,14 @@ class MirrorProcessor(object):
         """
         Init GnuPG object
         """
-        if self.__gpg_context:
-            return self.__gpg_context
+        if self.__gpg_signer:
+            return self.__gpg_signer
 
         logging.debug("Creating new GPG context")
-        self.__gpg_tmp_dir = TemporaryDirectory(prefix="debian_local_mirror_", suffix="_gpg")
-        logging.debug("Home for GPG: '%s'" % self.__gpg_tmp_dir.name)
-        
-        if not os.path.exists(self.__gpg_tmp_dir.name):
-            raise FileNotFoundError(self.__gpg_tmp_dir.name)
+        from .gpg_signer import GPGSigner
+        self.__gpg_signer = GPGSigner(keyfile=self._args.resign_key, passphrase=self._args.key_passphrase)
 
-        self.__gpg_context = gpg.Context(
-                armor=True,
-                textmode=True,
-                offline=True,
-                pinentry_mode=gpg.constants.PINENTRY_MODE_LOOPBACK,
-                home_dir=self.__gpg_tmp_dir.name)
-
-        _kpth = os.path.abspath(self._args.resign_key)
-        logging.debug("Importing key: '%s'" % _kpth)
-
-        with open(_kpth, mode='rb') as _keyfl_in:
-            _rslt = self.__gpg_context.key_import(_keyfl_in.read())
-            print(_rslt, self.__gpg_context)
-            logging.debug("key import status: '%s'" % _rslt)
-
-        raise ValueError("FuckOff")
-
-        return self.__gpg_context
+        return self.__gpg_signer
         
     def _get_release_file(self, mirror, distr):
         """
@@ -168,8 +146,6 @@ class MirrorProcessor(object):
                 _rlfl = _tmprlfl
 
             self._files.write('\n' + '\n'.join(_tmprlfl.get_local_paths()))
-
-        raise ValueError("FuckOff")
 
         return _rlfl
 

@@ -167,15 +167,9 @@ class TrashRemover(object):
 
             if _pth_legal:
                 _pth_legal = _pth_legal.strip()
+
             if _pth_current:
                 _pth_current = _pth_current.strip()
-
-            # check for empty line
-            if not _pth_legal or not _pth_current:
-                logging.warning("One of lines is empty, may be a sorting bug!")
-                logging.warning("Legal: '%s'" % _pth_legal)
-                logging.warning("Current: '%s'" % _pth_current)
-                continue
 
             if _pth_legal == _pth_current:
                 logging.debug("Equivalent found: '%s'" % _pth_legal)

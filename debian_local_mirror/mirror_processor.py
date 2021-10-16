@@ -145,9 +145,13 @@ class MirrorProcessor(object):
                         remote=mirror.get("source"),
                         sub=["dists", distr, _sect, "binary-%s" % _arch, "Packages"])
 
-                if _packages.synchronize():
-                    logging.info("Packages synchronization OK for '%s'-'%s'-'%s'" % (distr, _sect, _arch))
-                    _all_packages += _packages.get_local_paths()
+                _packages.remove_from_disk()
+
+                if not _packages.synchronize():
+                    continue
+
+                logging.info("Packages synchronization OK for '%s'-'%s'-'%s'" % (distr, _sect, _arch))
+                _all_packages += _packages.get_local_paths()
 
 
         if not len(_all_packages):

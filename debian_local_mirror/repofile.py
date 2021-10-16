@@ -135,7 +135,9 @@ class RepoFile(object):
         logging.info("'%s' ==> '%s'" % (remote, local))
 
         with open(local, 'wb') as _fl:
-            shutil.copyfileobj(_rsp.raw, _fl)
+            for chunk in _rsp.iter_content(8192):
+                _fl.write(chunk)
+
             _fl.flush()
 
         _rsp.close()
@@ -189,6 +191,16 @@ class RepoFile(object):
             self._fd.close()
 
         self._fd = None
+
+    def remove_from_disk(self):
+        """
+        Remove a files from disks
+        """
+        for _pth in self.get_local_paths():
+            if not os.path.exists(_pth):
+                continue
+
+            os.remove(_pth)
 
     def __del__(self):
         """

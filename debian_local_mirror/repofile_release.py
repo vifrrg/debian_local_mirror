@@ -5,6 +5,8 @@ import logging
 import re
 import posixpath
 import os
+import datetime
+import hashlib
 
 class RepoFileRelease(RepoFile, DebianMetaParser):
     """
@@ -179,6 +181,10 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.write()
 
     def write(self):
+        """
+        Write modified content to disk, no signing
+        """
+        self.check_create_local_path()
 
         with open(self._local, mode="wt") as _fl_out:
 
@@ -211,7 +217,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         :type gpg: pygpgme
         """
         self.close()
-
         for _ext in self._ext:
             if not _ext:
                 continue
@@ -219,6 +224,69 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             _out = self._local + _ext
             gpg.sign_file(file_path=self._local, signature_output=_out)
 
+        self.open()
+
+    def create(self, distr, mirror, packages):
+        """
+        Create a file for mirror configuration with packages files hashsums
+        :param distr: distributive codename
+        :type distr: str
+        :param mirror: mirror configuration
+        :type mirror: MirrorConfig
+        :param packages: list of local paths for packages file
+        :type packages: list of str
+        """
+        self.close()
+        logging.debug("Creation of local '%s' is started" % self._local)
+        self._data = dict()
+        self._data["Codename"] = distr
+        self._data["Date"] = datetime.datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S UTC')
+        self._data["Architectures"] = mirror.get("architectures")
+        self._data["Components"] = mirror.get("sections")
+
+        # collect sizes, SHA1, SHA256, MD5 checksums
+        _checksums_fields = list()
+
+        for _cs in self._checksums_fields:
+            if _cs.lower() in list(map(lambda x: x.lower(), _checksums_fields)):
+                continue
+
+            _checksums_fields.append(_cs)
+            self._data[_cs] = list()
+
+        for _pkg in packages:
+            # get relative path
+            _relpth = os.path.relpath(_pkg, os.path.dirname(self._local))
+            logging.debug("Packages '%s' relative path is '%s'" %(_pkg, _relpth))
+            # get size
+            _size = os.stat(_pkg).st_size
+
+            # get checksums
+            for _cs in _checksums_fields:
+                _hashobj = None
+
+                if _cs.lower() == "md5sum":
+                    _hashobj = hashlib.md5()
+                elif _cs.lower() == "sha1":
+                    _hashobj = hashlib.sha1()
+                elif _cs.lower() == "sha256":
+                    _hashobj = hashlib.sha256()
+
+                with open(_pkg, mode="rb") as _fd:
+                    while True:
+                        _chunk = _fd.read(1 * 1024 * 1024)
+                        
+                        if not _chunk: 
+                            break
+                        
+                        _hashobj.update(_chunk)
+
+                self._data[_cs].append({
+                    "Filename": _relpth,
+                    "Size": _size,
+                    "hash": _hashobj.hexdigest()})
+
+        self.write()
         self.open()
 
 class RepoFileInRelease(RepoFileRelease):

@@ -161,15 +161,20 @@ class TrashRemover(object):
             if not _pth_current:
                 _pth_current = self._fl_current.readline()
 
-            if not _pth_legal and not _pth_current:
+            if not _pth_current:
                 logging.info("Trash cleanup finished")
                 return
 
-            if _pth_legal:
-                _pth_legal = _pth_legal.strip()
+            if not _pth_legal:
+                _pth_legal = ""
 
-            if _pth_current:
-                _pth_current = _pth_current.strip()
+            _pth_legal = _pth_legal.strip()
+            _pth_current = _pth_current.strip()
+
+            if _pth_legal and not os.path.exists(_pth_legal):
+                logging.info("Path '%s' is legal but does not exist" % _pth_legal)
+                _pth_legal = None
+                continue
 
             if _pth_legal == _pth_current:
                 logging.debug("Equivalent found: '%s'" % _pth_legal)
@@ -180,6 +185,7 @@ class TrashRemover(object):
             if not os.path.exists(_pth_current):
                 logging.warning("Path is in current list but does not exist. Bug?")
                 logging.warning(_pth_current)
+                logging.warning(_pth_legal)
                 _pth_current = None
                 continue 
 

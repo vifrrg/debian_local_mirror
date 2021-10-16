@@ -57,16 +57,6 @@ class MirrorProcessor(object):
         self._files.close()
         self._files = None
 
-    def _make_release_for_distr(self, mirror, distr):
-        """
-        Special algorithm for processing mirror without Release file
-        :param mirror: mirror configuration
-        :type mirror: dict
-        :param distr: distributive name
-        :type distr: str
-        """
-        raise MirrorError(mirror.get("source"), mirror.get("destination"), 
-                "Release files not found for distributive '%s'" % distr)
 
     def _process_single_distributive(self, mirror, distr):
         """
@@ -81,12 +71,7 @@ class MirrorProcessor(object):
         # file from the $ARCHIVE_ROOT/dists/$DISTRIBUTION directory.
         # InRelease files are signed in-line while Release files should have an accompanying Release.gpg file
         _rlfl = self._get_release_file(mirror, distr)
-
-        if not _rlfl:
-            self._make_release_for_distr(mirror, distr)
-
         self._process_release(mirror, _rlfl);
-
         _archs = mirror.get("architectures")
 
         if "all" not in _archs and not _rlfl.skip_all_architecture():
@@ -138,6 +123,45 @@ class MirrorProcessor(object):
 
             if self._args.remove_valid_until:
                 _tmprlfl.remove_valid_until()
+
+            if self._args.resign_key:
+                _tmprlfl.sign(self._gpg)
+
+            if not _rlfl:
+                _rlfl = _tmprlfl
+
+            self._files.write('\n' + '\n'.join(_tmprlfl.get_local_paths()))
+
+        if _rlfl:
+            return _flfl
+
+        _all_packages = list()
+
+        for _sect in mirror.get("sections"):
+            for _arch in mirror.get("architectures"):
+                logging.debug("Try to get Packages for section '%s', architecture '%s'" % (_sect, _arch))
+                _packages = RepoFilePackages(
+                        local=mirror.get("destination"),
+                        remote=mirror.get("source"),
+                        sub=["dists", distr, _sect, "binary-%s" % _arch, "Packages"])
+
+                if _packages.synchronize():
+                    logging.info("Packages synchronization OK for '%s'-'%s'-'%s'" % (distr, _sect, _arch))
+                    _all_packages += _packages.get_local_paths()
+
+
+        if not len(_all_packages):
+            raise MirrorError(mirror.get("source"), mirror.get("destination"), 
+                    "All files not found for distributive '%s': Release, InRelease, Packages" % distr)
+
+        if not self._args.resign_key:
+            logging.info("InRelease creation will be skipped since no key provided for signing")
+            _candidates = list(filter(lambda x: not isinstance(x, RepoFileInRelease), _candidates))
+
+        logging.debug("Candidates left: %d" % len(_candidates))
+
+        for _tmprlfl in _candidates:
+            _tmprlfl.create(distr, mirror, _all_packages)
 
             if self._args.resign_key:
                 _tmprlfl.sign(self._gpg)

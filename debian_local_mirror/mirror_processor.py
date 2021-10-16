@@ -133,7 +133,7 @@ class MirrorProcessor(object):
             self._files.write('\n' + '\n'.join(_tmprlfl.get_local_paths()))
 
         if _rlfl:
-            return _flfl
+            return _rlfl
 
         _all_packages = list()
 

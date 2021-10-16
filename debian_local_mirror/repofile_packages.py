@@ -21,7 +21,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
                 remote = remote,
                 local = local,
                 sub = sub,
-                extensions = ["", ".gz", ".xz", ".bz2", ".lzma"],
+                extensions = [".gz", ".xz", ".bz2", ".lzma"],
                 absent_ok = True)
 
     def check_before(self):

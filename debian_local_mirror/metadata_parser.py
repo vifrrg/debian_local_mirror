@@ -48,6 +48,7 @@ class DebianMetaParser(object):
 
             logging.info("Duplicated keys found: '%s', converting result to list" % key)
             result = [result]
+            result.append(dict())
         
         if isinstance(result, list):
             result[-1][key] = value
@@ -130,7 +131,7 @@ class DebianMetaParser(object):
                 if not _value and _key not in self._empty_keys:
                     raise FormatError(self._local, "Key '%s' without value" % _key)
 
-                self._append_result(_result, _key, _value)
+                _result = self._append_result(_result, _key, _value)
 
             _key, _value = _ln.split(":", 1)
             _key = _key.strip()

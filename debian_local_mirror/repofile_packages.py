@@ -99,7 +99,6 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         logging.debug("Parsed data has been converted to list")
         return _result
 
-
     def get_subfiles(self):
         """
         Return files dictionary

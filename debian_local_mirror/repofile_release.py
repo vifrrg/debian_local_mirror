@@ -180,6 +180,14 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
         self.write()
 
+    def strip_packages_versions(self, local, remote, versions):
+        """
+        Download all Packages specified here and modify them by trimming old versions of each package.
+        Leave 'versions' versions only
+        :param local: local base directory
+        :param remote: remote 
+        """
+
     def write(self):
         """
         Write modified content to disk, no signing

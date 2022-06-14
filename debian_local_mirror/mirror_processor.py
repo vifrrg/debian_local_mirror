@@ -106,6 +106,10 @@ class MirrorProcessor(object):
         :param distr: distributive name
         :type distr: str
         """
+        if mirror.get("versions") and not self._args.resign_key:
+            raise MirrorError(mirror.get("source"), mirror.get("destination"), 
+                    "'versions' parameter specified, but no --resign-key given")
+
         _rlfl = None
         _candidates = [
             RepoFileRelease(
@@ -120,6 +124,13 @@ class MirrorProcessor(object):
         for _tmprlfl in _candidates:
             if not _tmprlfl.synchronize():
                 continue
+
+            if mirror.get("versions"):
+                _tmprlfl.strip_packages_versions(
+                        local=mirror.get("destination"), 
+                        remote=mirror.get("source"), 
+                        versions=mirror.get("versions"))
+                raise NotImplementedError("TODO: get all 'packages' files, trim them and update their checksums in Release")
 
             if self._args.remove_valid_until:
                 _tmprlfl.remove_valid_until()
@@ -151,8 +162,11 @@ class MirrorProcessor(object):
                     continue
 
                 logging.info("Packages synchronization OK for '%s'-'%s'-'%s'" % (distr, _sect, _arch))
-                _all_packages += _packages.get_local_paths()
 
+                if mirror.get("versions"):
+                    _packages.strip_versions(versions=mirror.get("versions"))
+
+                _all_packages += _packages.get_local_paths()
 
         if not len(_all_packages):
             raise MirrorError(mirror.get("source"), mirror.get("destination"), 

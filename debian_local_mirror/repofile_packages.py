@@ -14,9 +14,10 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
     Specific Packages file processor
     """
 
-    def __init__(self, remote, local, sub):
+    def __init__(self, remote, local, sub, checksums=None):
         self._data = None
         self._list_fields = list()
+        self._checksums = checksums
         super().__init__(
                 remote = remote,
                 local = local,
@@ -29,6 +30,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         Override base class.
         Returns True if any of file (with any of possible extension) exists
         """
+        raise NotImplementedError("TODO: verify checksums given if they are present")
         for _ext in self._ext:
             _fullpth = self._local + _ext;
 

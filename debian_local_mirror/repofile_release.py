@@ -1,4 +1,5 @@
 from .repofile import RepoFile
+from .repofile_checksum import RepoFileWithCheckSum
 from .metadata_parser import DebianMetaParser, FormatError
 from tempfile import TemporaryFile
 import logging
@@ -6,7 +7,6 @@ import re
 import posixpath
 import os
 import datetime
-import hashlib
 
 class RepoFileRelease(RepoFile, DebianMetaParser):
     """
@@ -266,35 +266,17 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             # get relative path
             _relpth = os.path.relpath(_pkg, os.path.dirname(self._local))
             logging.debug("Packages '%s' relative path is '%s'" %(_pkg, _relpth))
-            # get size
-            _size = os.stat(_pkg).st_size
+            _repo_file_cs = RepoFileWithCheckSum(
+                    local=os.path.dirname(self._local),
+                    remote=posixpath.dirname(self._remote),
+                    absent_ok=False,
+                    fdict={"sub": _relpth.split(os.path.sep)})
+            _repo_file_cs.open()
+            _checksums_dict = _repo_file_cs.get_path_checksum_size(_checksums_fields)
+            _repo_file_cs.close()
 
-            # get checksums
             for _cs in _checksums_fields:
-                _hashobj = None
-
-                if _cs.lower() == "md5sum":
-                    _hashobj = hashlib.md5()
-                elif _cs.lower() == "sha1":
-                    _hashobj = hashlib.sha1()
-                elif _cs.lower() == "sha256":
-                    _hashobj = hashlib.sha256()
-                elif _cs.lower() == "sha512":
-                    _hashobj = hashlib.sha512()
-
-                with open(_pkg, mode="rb") as _fd:
-                    while True:
-                        _chunk = _fd.read(1 * 1024 * 1024)
-                        
-                        if not _chunk: 
-                            break
-                        
-                        _hashobj.update(_chunk)
-
-                self._data[_cs].append({
-                    "Filename": _relpth,
-                    "Size": _size,
-                    "hash": _hashobj.hexdigest()})
+                self._data[_cs].append(_checksums_dict.get(_cs))
 
         self.write()
         self.open()

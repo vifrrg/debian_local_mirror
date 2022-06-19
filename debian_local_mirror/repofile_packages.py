@@ -25,12 +25,20 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
                 extensions = [".gz", ".xz", ".bz2", ".lzma"],
                 absent_ok = True)
 
+    def _check_checksums(self):
+        """
+        Try to download all possible file versions with checksums specified
+        """
+        raise NotImplementedError("TODO: calculate current file checksums")
+
     def check_before(self):
         """
         Override base class.
         Returns True if any of file (with any of possible extension) exists
         """
-        raise NotImplementedError("TODO: verify checksums given if they are present")
+        if self._checksums:
+            return self._check_checksums()
+
         for _ext in self._ext:
             _fullpth = self._local + _ext;
 
@@ -116,7 +124,6 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
             if not isinstance(_fld, dict):
                 raise FormatError(self._remote, "Something wrong: list contains non-dictionary: '%s'. Bug?" % type(_fld))
-                continue
 
             if "sub" not in _fld.keys():
                 _fld["sub"] = _fld.get("Filename").split(posixpath.sep)

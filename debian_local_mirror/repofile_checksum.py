@@ -1,5 +1,6 @@
 from .repofile import RepoFile
 import os
+import posixpath
 import logging
 import hashlib
 
@@ -7,14 +8,14 @@ class RepoFileWithCheckSum(RepoFile):
     """
     General file with checksum
     """
-    def __init__(self, remote, local, fdict):
+    def __init__(self, remote, local, fdict, absent_ok=True):
         self._data = None
         super().__init__(
-                remote = remote,
-                local = local,
-                sub = fdict.get("sub"),
-                extensions = [""],
-                absent_ok = True)
+                remote=remote,
+                local=local,
+                sub=fdict.get("sub"),
+                extensions=[""],
+                absent_ok=absent_ok)
 
         self._fdict = fdict
         self._links = list()
@@ -80,6 +81,28 @@ class RepoFileWithCheckSum(RepoFile):
             _hashobj.update(_chunk)
 
         return _hashobj.hexdigest()
+
+    def get_path_checksum_size(self, cstypes=["md5sum"]):
+        """
+        Returns a dictionary:
+        { "CS_TYPE": {
+                    "Filename": _relpth,
+                    "Size": _size,
+                    "hash": _hashobj.hexdigest()}}
+        """
+        logging.debug("CsTypes: '%s'" % str(cstypes))
+        _result = dict()
+        # get size
+        _size = os.stat(self._local).st_size
+
+        # get checksums
+        for _cs_type in cstypes:
+            _result[_cs_type]={
+                    "Filename": posixpath.sep.join(self._sub),
+                    "Size": _size,
+                    "hash": self._calculate_checksum(_cs_type.lower())}
+
+        return _result
 
     def _compare_checksums(self):
         """

@@ -31,6 +31,7 @@ class RepoFile(object):
             raise TypeError("Etensions list is not a list: '%s'" % type(extensions))
 
         self._sub = sub
+        self._base_remote = remote
         self._remote = posixpath.join(remote, posixpath.sep.join(sub))
         self._base_local = os.path.abspath(local)
         self._local = os.path.abspath(os.path.join(self._base_local, os.path.sep.join(self._sub)))

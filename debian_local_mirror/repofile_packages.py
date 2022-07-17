@@ -14,7 +14,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
     Specific Packages file processor
     """
 
-    def __init__(self, remote, local, sub, checksums=None):
+    def __init__(self, remote, local, sub, checksums=None, extensions=[".gz", ".xz", ".bz2", ".lzma"]):
         self._data = None
         self._list_fields = list()
         self._checksums = checksums
@@ -22,7 +22,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
                 remote = remote,
                 local = local,
                 sub = sub,
-                extensions = [".gz", ".xz", ".bz2", ".lzma"],
+                extensions = extensions,
                 absent_ok = True)
 
     def _check_checksums(self):

@@ -144,6 +144,12 @@ class RepoFile(object):
 
         _rsp.close()
 
+    def unpack_if_needed(self):
+        """
+        Dummy in general, to be overriden in sub-classes if needed
+        """
+        return
+
     def synchronize(self):
         """
         Synchronize from remote
@@ -158,6 +164,9 @@ class RepoFile(object):
             _fullpth_remote = self._remote + _ext
             _fullpth_local = self._local + _ext
             self._download_remote(_fullpth_remote, _fullpth_local, self._absent_ok)
+
+        # special situation when checksum of unpacked file given but file itself absent
+        self.unpack_if_needed()
 
         return self.check_after()
 

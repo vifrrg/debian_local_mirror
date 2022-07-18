@@ -81,7 +81,7 @@ class MirrorProcessor(object):
         for _section in mirror.get("sections"):
             for _arch in _archs:
                 logging.info("Processing section '%s', architecture '%s'" % (_section, _arch))
-                self._process_section_architecture(mirror, distr, _section, _arch)
+                self._process_section_architecture(mirror, distr, _section, _arch, _rlfl)
 
     @property
     def _gpg(self):
@@ -136,6 +136,7 @@ class MirrorProcessor(object):
                 _tmprlfl.remove_valid_until()
 
             if self._args.resign_key:
+                _tmprlfl.strip_architectures(mirror.get("architectures"))
                 _tmprlfl.sign(self._gpg)
 
             if not _rlfl:
@@ -234,7 +235,7 @@ class MirrorProcessor(object):
         _tr.remove_trash()
         self._files = _tr.get_temp()
 
-    def _process_section_architecture(self, mirror, distr, section, arch):
+    def _process_section_architecture(self, mirror, distr, section, arch, rlfl):
         """
         Get parse packages index and synchronize all packages
         :param mirror: full mirror configuration
@@ -245,16 +246,10 @@ class MirrorProcessor(object):
         :type section: str
         :param arch: architecture
         :type arch: str
+        :param rlfl: release file instance
         """
-        _pkgs = RepoFilePackages(
-                local=mirror.get("destination"),
-                remote=mirror.get("source"),
-                sub=["dists", distr, section, "binary-%s" % arch, "Packages"])
-
-        if not _pkgs.synchronize():
-            # no such architecture, skip it
-            return
-
+        _pkgs = rlfl.get_packages_file();
+        raise NotImplementedError("TODO: get synchronized packages files for a section and architecture given")
         _pkgs.open()
         
         for _fl in _pkgs.get_subfiles():

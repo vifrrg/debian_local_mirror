@@ -8,6 +8,7 @@ import re
 import posixpath
 import os
 import datetime
+from copy import deepcopy
 
 class RepoFileRelease(RepoFile, DebianMetaParser):
     """
@@ -188,10 +189,14 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         :param local: local base directory
         :param remote: remote 
         """
+
+        logging.debug("local: '%s', remote: '%s', versions: '%d'" % (
+            local, remote,  versions))
+
         self.open()
         _packages = dict()
 
-        for _file in self.get_subfiles():
+        for _file, _fdata in self.get_subfiles().items():
             _path, _ext = posixpath.splitext(_file)
             _filename = posixpath.basename(_path)
 
@@ -203,20 +208,20 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             if _path not in _packages.keys():
                 _packages[_path] = dict()
 
-            _packages[_path][_ext] = self._get_sub_checksums(_file)
+            _packages[_path][_ext] = _fdata
 
         for _path, _ext_subs in _packages.items():
             _pkg_file = RepoFilePackages(
                     remote = remote,
                     local = local,
-                    sub = _path.split(posixpath.sep),
+                    sub = deepcopy(self._sub)[:-1] + _path.split(posixpath.sep),
                     checksums = _ext_subs, 
                     extensions = list(_ext_subs.keys()))
 
             _pkg_file.remove_from_disk()
 
             if not _pkg_file.synchronize():
-                logging.error("Unable to synchronize '%s'")
+                logging.error("Unable to synchronize '%s'" % _path)
                 continue
 
             _pkg_file.strip_versions(versions=versions)
@@ -225,24 +230,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.write()
         self.close()
         raise NotImplementedError("TODO: load all packages files and strip them")
-
-    def _get_sub_checksums(self, subpath):
-        """
-        Collect and a dictionary with checksums-types as key and hash as value - by sub-path from data
-        """
-        logging.debug("Search checksums for '%s' in '%s'" % (subpath, self._local))
-        _result = dict()
-
-        for _field in self._checksums_fields:
-            if not self._data.get(_field):
-                logging.debug("Checksum of type '%s' not given in '%s'" % (_field, self._local))
-                continue
-
-            _result[_field] = list(filter(
-                lambda x: x.get('Filename') == subpath, self._data.get(_field))).pop().get('hash')
-            logging.debug("Found hash '%s' = '%s' for '%s'" % (_field, _result[_field], subpath))
-
-        return _result
 
     def write(self):
         """

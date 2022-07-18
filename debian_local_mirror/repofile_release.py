@@ -238,28 +238,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.check_create_local_path()
 
         with open(self._local, mode="wt") as _fl_out:
-
-            for _key in self._data.keys():
-                logging.debug("Writing key value for '%s'" % _key)
-                _value = self._data.get(_key)
-
-                if not isinstance(_value, list):
-                    _fl_out.write("%s: %s\n" % (_key, _value))
-                    continue
-
-                if not _key in self._checksums_fields:
-                    _fl_out.write("%s: %s\n" %(_key, " ".join(_value)))
-                    continue
-
-                _fl_out.write("%s:\n" % _key)
-
-                for _vl in _value:
-                    _size = "%d" % _vl.get("Size")
-
-                    while len(_size) < 10:
-                        _size = " %s" % _size
-
-                    _fl_out.write(" %s %s %s\n" % (_vl.get("hash"), _size, _vl.get("Filename")))
+            self.unparse_and_write(self._data, _fl_out)
 
     def sign(self, gpg):
         """
@@ -393,3 +372,11 @@ class RepoFileInRelease(RepoFileRelease):
         self.close()
         gpg.sign_file(file_path=self._local)
         self.open()
+
+    def strip_architectures(self, architectures):
+        """
+        Strip unused architectures
+        :param architectures: list of architectures to leave
+        :type architectures: list(str)
+        """
+        raise NotImplementedError("TODO: open, modify architectures, save")

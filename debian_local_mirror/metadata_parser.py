@@ -9,6 +9,7 @@ class DebianMetaParser(object):
     _list_feilds = [] # keys for which value should be a list
     _list_sep = " " # separator for list-fields
     _empty_keys=["Description"]
+    _checksums_fields=[]
 
     def _convert_list_field(self, key, value):
         """
@@ -140,3 +141,61 @@ class DebianMetaParser(object):
 
         return _result
 
+    def unparse_and_write(self, data_dict, fl_out):
+        """
+        Back parsing of input data
+        :param data_dict: data_dict to write
+        :type data_dict: dict
+        :param fl_out: file to write to
+        :type fl_out: file-like opbect
+        """
+
+        if isinstance(data_dict, dict):
+            self._unparse_and_write_single_dict(data_dict, fl_out)
+            return
+
+        _first = True
+        for _element in data_dict:
+            if not _first:
+                fl_out.write('\n')
+            else:
+                _first = False
+
+            self._unparse_and_write_single_dict(_element, fl_out)
+
+    def _unparse_and_write_single_dict(self, data_dict, fl_out):
+        """
+        do unparse a signe dictionary
+        :param data_dict: data_dict to write
+        :type data_dict: dict
+        :param fl_out: file to write to
+        :type fl_out: file-like opbect
+        """
+
+        for _key in data_dict.keys():
+            logging.debug("Unparsing key value for '%s'" % _key)
+            _value = data_dict.get(_key)
+
+            if not isinstance(_value, list):
+                # check if value is multiline
+                fl_out.write("%s: %s\n" % (_key, _value))
+                continue
+
+            if _key not in self._checksums_fields:
+                _list_sep = self._list_sep
+
+                if _key in self._empty_keys:
+                    _list_sep = "\n%s" % self._list_sep
+
+                fl_out.write("%s: %s\n" %(_key, _list_sep.join(_value)))
+                continue
+
+            fl_out.write("%s:\n" % _key)
+
+            for _vl in _value:
+                _size = "%d" % _vl.get("Size")
+                
+                while len(_size) < 10:
+                    _size = " %s" % _size
+
+                fl_out.write(" %s %s %s\n" % (_vl.get("hash"), _size, _vl.get("Filename")))

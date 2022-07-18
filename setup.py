@@ -12,6 +12,7 @@ setup(
     version = "1.1.0",
     python_requires = ">=3.5.0",
     install_requires = [
-        "requests"
+        "requests",
+        "packaging"
     ]
 )

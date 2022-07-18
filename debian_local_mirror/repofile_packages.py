@@ -6,6 +6,8 @@ import os
 import logging
 import posixpath
 from copy import deepcopy
+from packaging import version
+from tempfile import NamedTemporaryFile
 
 from .repofile import RepoFile
 from .repofile_checksum import RepoFileWithCheckSum
@@ -97,16 +99,22 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         """
         return self.check_before()
 
-    def __open(self, mode="rt"):
+    def __open(self, mode="rt", ext=None):
         """
         Open file - background version.
         Check the extension and unpack if needed.
         """
-        for _ext in self._ext:
+        if ext is None:
+            ext = self._ext
+
+        if isinstance(ext, str):
+            ext = [ext]
+
+        for _ext in ext:
             _fullpth = self._local + _ext
             logging.debug("Try to open '%s'" % _fullpth)
 
-            if not os.path.exists(_fullpth):
+            if not os.path.exists(_fullpth) and 'w' not in mode:
                 logging.debug("Not found: '%s'" % _fullpth)
                 continue
 
@@ -179,4 +187,58 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
         logging.debug("Returning list of '%d' files" % len(_result))
         return _result
+
+    def strip_versions(self, versions):
+        """
+        Strip all packages versios
+        :param versions: latest versions to leave
+        :type versions: int
+        """
+
+        if not isinstance(versions, int):
+            raise TypeError("Versions is not a number")
+
+        if versions <= 0:
+            raise ValueError("Illegal versions value: %d" % versions)
+
+        self.open()
+        logging.debug("Number of packages before stripping: %d" % len(self._data))
+        _packages = list(set(list(map(lambda x: x.get("Package"), self._data))))
+
+        for _package in _packages:
+            logging.debug("Stripping package: '%s'" % _package)
+            _all_package_records = list(filter(lambda x: x.get("Package") == _package, self._data))
+            logging.debug("Type of _all_package_records: '%s'" % type(_all_package_records))
+            _versions = list(map(lambda x: x.get("Version"), _all_package_records))
+            logging.debug("Versions in source: '%s'" % _versions)
+            _versions = list(map(lambda x: version.parse(x), _versions))
+            _versions.sort(reverse=True)
+            _versions = _versions[:versions]
+            _versions = list(map(lambda x: str(x), _versions))
+            logging.debug("Versions to leave: '%s'" % _versions)
+            self._data = list(filter(lambda x: x.get("Package") != _package or 
+                        (x.get("Package") == _package and x.get("Version")) in _versions, self._data))
+
+        logging.debug("Number of packages after stripping: %d" % len(self._data))
+        self.close()
+        self.write()
+
+    def write(self):
+        """
+        Save changed data to all local files
+        """
+        # write first to temporary file, then copy everything in by-extension mode
+        _tmpf = NamedTemporaryFile(mode='w+t')
+        logging.debug("Writing temporary file to '%s'" % _tmpf.name)
+        self.unparse_and_write(self._data, _tmpf)
+
+        for _ext in self._ext:
+            self.close()
+            self.__open(mode='wt', ext=_ext)
+            logging.debug("Writing ext: '%s'" % _ext)
+            _tmpf.seek(0, 0)
+            self._fd.write(_tmpf.read())
+            self.close()
+
+        _tmpf.close()
 

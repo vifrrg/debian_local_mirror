@@ -359,7 +359,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             _fd.write(_src_fd.read())
             self.write_signature_footer(_fd, rlfl.get_signature())
         rlfl.close()
-        raise NotImplementedError("TODO: check GPG-signature!")
 
     def create(self, distr, mirror, packages):
         """
@@ -541,8 +540,9 @@ class RepoFileInRelease(RepoFileRelease):
                         if not _line_t:
                             continue
 
-                        if _line_t.startswith('Hash:'):
-                            # we do not need Hash information
+                        if any([    _line_t.startswith('Hash:'),
+                                    _line_t.startswith('Comment:')]):
+                            # we do not need headers but save them for future use
                             continue
 
                         break
@@ -593,13 +593,16 @@ class RepoFileInRelease(RepoFileRelease):
             fd.write(self._signature_start)
             fd.write('\n')
 
-        if all([not signature.startswith('Version: '), not signature.startswith('\n')]):
+        if all([    not signature.startswith('Version: '), 
+                    not signature.startswith('Comment: '), 
+                    not signature.startswith('\n')]):
             fd.write('\n')
 
         fd.write(signature)
 
-        if any([not signature.endswith(self._signature_end), not signature.endswith(self._signature_end + '\n')]):
-            fd.write(_signature_end)
+        if all([    not signature.endswith(self._signature_end), 
+                    not signature.endswith(self._signature_end + '\n')]):
+            fd.write(self._signature_end)
 
     def write_signature_header(self, fd):
         """
@@ -607,5 +610,6 @@ class RepoFileInRelease(RepoFileRelease):
         """
         # no need since signature is in separate file
         fd.write(self._message_start)
-        fd.write('\n\n')
+        logging.warning("Using hardcoded Hash: SHA512, this may conflict with real one used")
+        fd.write('\nHash: SHA512\n\n')
         fd.flush()

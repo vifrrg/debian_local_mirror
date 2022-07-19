@@ -34,6 +34,7 @@ class GPGSigner(object):
 
         self._import_key()
         self._set_signer()
+        self._gpg_context.hash_algo = gpg.constants.MD_SHA512
 
     def _import_key(self):
         """

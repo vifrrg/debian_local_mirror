@@ -227,6 +227,10 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             _packages[_path][_ext] = _fdata
 
         if len(list(_packages.keys())) != 1:
+
+            if arch == 'all':
+                return None
+
             raise ValueError("Found %d version(s) of 'Packages' in '%s'" % (len(list(_packages.keys())), self._local))
 
         _path = list(_packages.keys()).pop()
@@ -252,6 +256,10 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         for _section in self._data.get("Components"):
             for _arch in self._data.get("Architectures"):
                 _pkg_file = self.get_packages_file(_section, _arch)
+
+                if not _pkg_file:
+                    logging.warning("Not found 'Packages' for section '%s', architecture '%s'" % (_section, _arch))
+                    continue
 
                 _pkg_file.remove_from_disk()
 

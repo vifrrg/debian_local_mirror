@@ -250,6 +250,11 @@ class MirrorProcessor(object):
         rlfl.open()
         _pkgs = rlfl.get_packages_file(section, arch)
         rlfl.close()
+
+        if not _pkgs:
+            logging.warning("Not found 'Packages' file for section '%s', architecture '%s'" % (section, arch))
+            return
+
         _pkgs.open()
         
         for _fl in _pkgs.get_subfiles():

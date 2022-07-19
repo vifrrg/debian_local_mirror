@@ -22,6 +22,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         self._data = None
         self._list_fields = list()
         self._checksums = checksums
+        self._checksums_u = dict()
         super().__init__(
                 remote = remote,
                 local = local,
@@ -73,6 +74,51 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
                 return False
 
         return True
+
+    def _convert_cs_format(self, src_d, dst_d):
+        """
+        Convert format of checksums-dictionary 
+        (due to different format of these fields in Release and Packages files)
+        """
+        for _key, _value in src_d.items():
+            if 'Size' in _value.keys():
+                dst_d['Size'] = _value.get('Size')
+
+            dst_d[_key] = _value.get('hash')
+
+        return dst_d
+
+    def _update_checksums(self):
+        """
+        Update checksums given from original
+        """
+        if not self._checksums:
+            logging.debug("Checksums not updated since not given prior")
+            return
+
+        self._set_checksums_fields()
+
+        for _cs_ext in self._checksums.keys():
+            logging.debug("Updating checksums for '%s'" % (self._local + _cs_ext))
+            _sub = deepcopy(self._sub)
+            _sub[-1] = _sub[-1] + _cs_ext
+            _cs = deepcopy(self._checksums.get(_cs_ext))
+            _cs['sub'] = _sub
+
+            _fl = RepoFileWithCheckSum(
+                    remote=self._base_remote,
+                    local=self._base_local,
+                    fdict=_cs)
+
+            _checksums_fields = list(filter(lambda x: x in self._checksums_fields, _cs.keys()))
+            logging.debug("Filtered checksums fields: '%s' of '%s'" % (_checksums_fields, self._checksums_fields))
+            _fl.open()
+            _checksums_dict = _fl.get_path_checksum_size(_checksums_fields)
+            _fl.close()
+            self._checksums_u[_cs_ext] = _checksums_dict
+            self._checksums[_cs_ext] = self._convert_cs_format(_checksums_dict, _cs)
+
+        self._checksums_fields = None
 
     def check_before(self):
         """
@@ -222,6 +268,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
         logging.debug("Number of packages after stripping: %d" % len(self._data))
         self.close()
         self.write()
+        self._update_checksums()
 
     def write(self):
         """
@@ -241,4 +288,10 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
             self.close()
 
         _tmpf.close()
+
+    def get_updated_checksums_sizes(self):
+        """
+        Return updated checksums-sizes list (suitable for insert in 'Release' file)
+        """
+        return deepcopy(self._checksums_u)
 

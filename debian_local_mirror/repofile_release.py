@@ -225,11 +225,26 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 continue
 
             _pkg_file.strip_versions(versions=versions)
-            raise NotImplementedError("TODO: get checksums back and paste it to self._data")
+            _checksums_dict = _pkg_file.get_updated_checksums_sizes()
+            self._update_checksums_pkg(_checksums_dict)
 
         self.write()
         self.close()
         raise NotImplementedError("TODO: load all packages files and strip them")
+
+    def _update_checksums_pkg(self, checksums_dict):
+        """
+        update self._data with checksums_dict given - replace filename, size, hash
+        This is special version for 'packages' file where keys are extensions
+        """
+        raise NotImplementedError("TODO: paste it to self._data: '%s'" % checksums_dict)
+
+    def _update_checksums(self, checksums_dict):
+        """
+        update self._data with checksums_dict given - replace filename, size, hash
+        This is general version
+        """
+        raise NotImplementedError("TODO: paste it to self._data: '%s'" % checksums_dict)
 
     def write(self):
         """

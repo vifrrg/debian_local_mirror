@@ -197,6 +197,24 @@ class TrashRemover(object):
             os.remove(_pth_current)
             _pth_current = None
 
+        self._remove_empty_dirs(self._src_dir)
+
+    def _remove_empty_dirs(self, src_dir):
+        src_dir = os.path.abspath(src_dir)
+
+        if not os.path.isdir(src_dir):
+            return
+
+        logging.info("Cleaning empty dirs in '%s'" % src_dir)
+
+        for _subd in os.listdir(src_dir):
+            _subd = os.path.join(src_dir, _subd)
+            self._remove_empty_dirs(_subd)
+        
+        if not os.listdir(src_dir):
+            logging.info("Removing empty directory: '%s'" % src_dir)
+            os.rmdir(src_dir)
+
     def _make_current_files_list(self):
         """
         make current files list

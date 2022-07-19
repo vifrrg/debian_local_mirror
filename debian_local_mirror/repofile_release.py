@@ -585,3 +585,27 @@ class RepoFileInRelease(RepoFileRelease):
         gpg.sign_file(file_path=self._local)
         self.open()
 
+    def write_signature_footer(self, fd, signature):
+        """
+        Write GPG signature
+        """
+        if not signature.startswith(self._signature_start):
+            fd.write(self._signature_start)
+            fd.write('\n')
+
+        if all([not signature.startswith('Version: '), not signature.startswith('\n')]):
+            fd.write('\n')
+
+        fd.write(signature)
+
+        if any([not signature.endswith(self._signature_end), not signature.endswith(self._signature_end + '\n')]):
+            fd.write(_signature_end)
+
+    def write_signature_header(self, fd):
+        """
+        Write GPG signature footer
+        """
+        # no need since signature is in separate file
+        fd.write(self._message_start)
+        fd.write('\n\n')
+        fd.flush()

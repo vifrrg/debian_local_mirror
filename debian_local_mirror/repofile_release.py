@@ -182,7 +182,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
         self.write()
 
-    def get_packages_file(section, arch):
+    def get_packages_file(self, section, arch):
         """
         Search for 'Packages' file with all possible variants (extensions)
         Return RepoFilePackages instance.

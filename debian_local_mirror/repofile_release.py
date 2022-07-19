@@ -25,8 +25,25 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         self._set_list_field()
 
-    def get_parsed_data(self):
-        return deepcopy(self._data)
+    def get_pure_fd(self):
+        """
+        Return file descriptor for copying data part
+        File have to be opened prior to call this
+        """
+        return self._fd
+
+    def get_signature(self):
+        """
+        Read signature and return it
+        """
+        if not os.path.exists(self._local + '.gpg'):
+            logging.warning("Release file '%s' has no signature" % self._local)
+            return ""
+
+        _fd = open(self._local + '.gpg', mode='rt')
+        _result = _fd.read()
+        _fd.close()
+        return _result
 
     def _set_list_field(self):
         """
@@ -76,7 +93,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         return self._convert_checksums(super().parse())
 
-    def open(self, mode="r"):
+    def open(self, mode="rt"):
         """
         Open file
         :param mode: open mode
@@ -313,14 +330,36 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         self.open()
 
+    def write_signature_footer(self, fd, signature):
+        """
+        Write GPG signature
+        """
+        with open(self._local + '.gpg', mode='wt') as _fd:
+            _fd.write(signature)
+            # signature should include newline character also
+
+    def write_signature_header(self, fd):
+        """
+        Write GPG signature footer
+        """
+        # no need since signature is in separate file
+        pass
+
     def create_from(self, rlfl):
         """
         Create a copy from other rlfl
         """
-        raise NotImplementedError("TODO: copy GPG-signature also - if present")
         self.close()
-        self._data = rlfl.get_parsed_data()
-        self.write()
+        rlfl.close()
+        rlfl.open()
+        with open(self._local, mode="wt") as _fd:
+            self.write_signature_header(_fd)
+            _src_fd = rlfl.get_pure_fd()
+            _src_fd.seek(0, 0)
+            _fd.write(_src_fd.read())
+            self.write_signature_footer(_fd, rlfl.get_signature())
+        rlfl.close()
+        raise NotImplementedError("TODO: check GPG-signature!")
 
     def create(self, distr, mirror, packages):
         """
@@ -456,8 +495,15 @@ class RepoFileInRelease(RepoFileRelease):
                 extensions = [],
                 absent_ok = True)
         self._set_list_field()
+        self._message_start = '-----BEGIN PGP SIGNED MESSAGE-----'
+        self._signature_start = '-----BEGIN PGP SIGNATURE-----'
+        self._signature_end = '-----END PGP SIGNATURE-----'
+        self._signature = None
 
-    def open(self, mode="r"):
+    def get_signature(self):
+        return self._signature
+
+    def open(self, mode="rt"):
         """
         Open file. This version creates a temfile from the original
         with GPG-related data removed
@@ -479,23 +525,43 @@ class RepoFileInRelease(RepoFileRelease):
 
                 if not _pgp_start:
                     # search for PGP start
-                    _pgp_start = _line.startswith('-----BEGIN PGP SIGNED MESSAGE-----')
+                    _pgp_start = _line.startswith(self._message_start)
 
                     if not _pgp_start:
                         continue
 
-                    _line = _lfl.readline()
+                    while True: 
+                        _line = _lfl.readline()
 
-                    if not _line:
-                        break;
+                        if not _line:
+                            break
 
-                    if _line.startswith('Hash:'):
-                        # we do not need Hash information
-                        continue
+                        _line_t = _line.strip()
 
-                _pgp_end = _line.startswith('-----BEGIN PGP SIGNATURE-----')
+                        if not _line_t:
+                            continue
+
+                        if _line_t.startswith('Hash:'):
+                            # we do not need Hash information
+                            continue
+
+                        break
+
+                if not _line:
+                    break
+
+                _pgp_end = _line.startswith(self._signature_start)
 
                 if _pgp_end:
+                    self._signature = ""
+                    while True:
+                        _line = _lfl.readline()
+
+                        if _line.startswith(self._signature_end):
+                            break
+
+                        logging.debug("Adding signature line: '%s'" % _line)
+                        self._signature += _line
                     break
 
                 self._fd.write(_line)
@@ -505,7 +571,6 @@ class RepoFileInRelease(RepoFileRelease):
                 self._fd.seek(0, 0)
                 _lfl.seek(0, 0)
                 self._fd.write(_lfl.read())
-
 
         self._fd.seek(0, 0)
         self._data = self.parse()

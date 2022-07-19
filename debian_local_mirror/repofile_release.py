@@ -182,15 +182,11 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
         self.write()
 
-    def strip_packages_versions(self, versions):
+    def get_packages_file(section, arch):
         """
-        Download all Packages specified here and modify them by trimming old versions of each package.
-        Leave 'versions' versions only
+        Search for 'Packages' file with all possible variants (extensions)
+        Return RepoFilePackages instance.
         """
-
-        logging.debug("versions: '%d'" % versions)
-
-        self.open()
         _packages = dict()
 
         for _file, _fdata in self.get_subfiles().items():
@@ -200,6 +196,9 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             if _filename != 'Packages':
                 continue
 
+            if not _path.startswith(posixpath.join(section, "binary-%s" % arch)):
+                continue
+
             logging.debug("Found 'Packages': subpath='%s', ext='%s'" % (_path, _ext))
 
             if _path not in _packages.keys():
@@ -207,23 +206,42 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
             _packages[_path][_ext] = _fdata
 
-        for _path, _ext_subs in _packages.items():
-            _pkg_file = RepoFilePackages(
-                    remote = posixpath.join(posixpath.dirname(self._remote)),
-                    local = posixpath.join(posixpath.dirname(self._local)),
-                    sub = _path.split(posixpath.sep),
-                    checksums = _ext_subs, 
-                    extensions = list(_ext_subs.keys()))
+        if len(list(_packages.keys())) != 1:
+            raise ValueError("Found %d version(s) of 'Packages' in '%s'" % (len(list(_packages.keys())), self._local))
 
-            _pkg_file.remove_from_disk()
+        _path = list(_packages.keys()).pop()
+        _ext_subs = _packages.get(_path)
 
-            if not _pkg_file.synchronize():
-                logging.error("Unable to synchronize '%s'" % _path)
-                continue
+        return RepoFilePackages(
+                remote = posixpath.join(posixpath.dirname(self._remote)),
+                local = posixpath.join(posixpath.dirname(self._local)),
+                sub = _path.split(posixpath.sep),
+                checksums = _ext_subs, 
+                extensions = list(_ext_subs.keys()))
 
-            _pkg_file.strip_versions(versions=versions)
-            _checksums_dict = _pkg_file.get_updated_checksums_sizes()
-            self._update_checksums_pkg(_checksums_dict)
+    def strip_packages_versions(self, versions):
+        """
+        Download all Packages specified here and modify them by trimming old versions of each package.
+        Leave 'versions' versions only
+        """
+
+        logging.debug("versions: '%d'" % versions)
+
+        self.open()
+
+        for _section in self._data.get("Components"):
+            for _arch in self._data.get("Architectures"):
+                _pkg_file = self.get_packages_file(_section, _arch)
+
+                _pkg_file.remove_from_disk()
+
+                if not _pkg_file.synchronize():
+                    logging.error("Unable to synchronize '%s'" % _path)
+                    continue
+
+                _pkg_file.strip_versions(versions=versions)
+                _checksums_dict = _pkg_file.get_updated_checksums_sizes()
+                self._update_checksums_pkg(_checksums_dict)
 
         self.write()
         self.close()
@@ -345,34 +363,63 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         :param architectures: list of architectures to leave
         :type architectures: list(str)
         """
-        if not architectures:
-            raise ValueError("No architectures specified")
 
-        if not isinstance(architectures, list):
-            raise TypeError("Architectures arg should be a list of str")
+        self.__strip_parameter(architectures, "Architectures", "all", '-%%s(\.|$|\%s)' % posixpath.sep)
 
-        logging.debug("Architectures to leave: '%s'" % architectures)
+    def strip_sections(self, sections):
+        """
+        Strip unused sections ("Components" key - thanks to authors for nice teminology)
+        """
+        self.__strip_parameter(sections, "Components", None, '^%%s\%s' % posixpath.sep)
+
+    def __strip_parameter(self, args_ls, data_key, add_value, regexp_filter):
+        """
+        Filter self parameter with regular expression template
+        """
+        if not data_key:
+            raise ValueError("Data key not given")
+
+        if not regexp_filter:
+            raise ValueError("Regular expression filter template not specified")
+
+        if not args_ls:
+            raise ValueError("No filter list specified")
+
+        if not isinstance(args_ls, list):
+            raise TypeError("Filter list arg should be a list of str")
+
+        logging.debug("%s to leave: '%s'" % (data_key, args_ls))
         self.open()
-        _current_arch = self._data.get("Architectures")
+        _current_ls = self._data.get(data_key)
 
-        if not _current_arch:
-            logging.warning("Current architectures list is empty, nothing to strip")
+        if not _current_ls:
+            logging.warning("Current '%s' list is empty, nothing to strip" % data_key)
             return
 
-        logging.debug("Current architectures: '%s'" % _current_arch)
-        _arch_to_remove = list(filter(lambda x: x not in (architectures + ['all']), _current_arch))
-        logging.debug("Architectures to remove: '%s'" % _arch_to_remove)
+        logging.debug("Current %s: '%s'" % (data_key, _current_ls))
+        _ls_flt = deepcopy(args_ls)
+
+        if (add_value):
+            _ls_flt.append(add_value)
+
+        _ls_to_remove = list(filter(lambda x: x not in _ls_flt, _current_ls))
+
+        if not _ls_to_remove:
+            logging.debug("Nothing to remove in '%s'" % data_key)
+            return
+
+        logging.debug("'%s' to remove: '%s'" % (data_key, _ls_to_remove))
 
         for _cs_field in self._checksums_fields:
-            logging.debug("Stripping architectures from field '%s'" % _cs_field)
+            logging.debug("Stripping '%s' from field '%s'" % (data_key, _cs_field))
 
             if not self._data.get(_cs_field):
                 logging.debug("No checksum of type '%s' in '%s' - skipping" % (_cs_field, self._local))
                 continue
 
-            for _arch in _arch_to_remove:
-                _rg = re.compile('-%s(\.|$|\%s)' % (_arch, posixpath.sep))
-                logging.debug("Removing files for architecture '%s'" % _arch)
+            for _parm in _ls_to_remove:
+                _rg = re.compile(regexp_filter % _parm)
+                logging.debug("Removing files for %s '%s'" % (data_key, _parm))
                 _records_to_remove = list(filter(lambda x: _rg.search(x.get("Filename")), self._data.get(_cs_field)))
 
                 for _record in _records_to_remove:
@@ -380,7 +427,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                     self._data[_cs_field].remove(_record)
 
 
-        self._data["Architectures"] = architectures
+        self._data[data_key] = args_ls
         self.close()
         self.write()
 

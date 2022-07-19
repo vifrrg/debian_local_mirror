@@ -80,8 +80,8 @@ class MirrorProcessor(object):
 
         for _section in mirror.get("sections"):
             for _arch in _archs:
-                logging.info("Processing section '%s', architecture '%s'" % (_section, _arch))
-                self._process_section_architecture(mirror, distr, _section, _arch, _rlfl)
+                logging.info("Processing distr '%s', section '%s', architecture '%s'" % (distr, _section, _arch))
+                self._process_section_architecture(mirror, _section, _arch, _rlfl)
 
     @property
     def _gpg(self):
@@ -127,6 +127,7 @@ class MirrorProcessor(object):
 
             if self._args.resign_key:
                 _tmprlfl.strip_architectures(mirror.get("architectures"))
+                _tmprlfl.strip_sections(mirror.get("sections"))
 
             if mirror.get("versions"):
                 _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))
@@ -233,22 +234,22 @@ class MirrorProcessor(object):
         _tr.remove_trash()
         self._files = _tr.get_temp()
 
-    def _process_section_architecture(self, mirror, distr, section, arch, rlfl):
+    def _process_section_architecture(self, mirror, section, arch, rlfl):
         """
         Get parse packages index and synchronize all packages
         :param mirror: full mirror configuration
         :type mirror: dict
-        :param distr: distributive code
-        :type distr: str
         :param section: secton
         :type section: str
         :param arch: architecture
         :type arch: str
         :param rlfl: release file instance
         """
-        _pkgs = rlfl.get_packages_file();
-        raise NotImplementedError("TODO: get synchronized packages files for a section and architecture given")
+        rlfl.open()
+        _pkgs = rlfl.get_packages_file(section, arch)
+        rlfl.close()
         _pkgs.open()
+        raise NotImplementedError("TODO: get synchronized packages files for a section and architecture given")
         
         for _fl in _pkgs.get_subfiles():
             logging.info("Processing file: %s" % _fl.get("Filename"))

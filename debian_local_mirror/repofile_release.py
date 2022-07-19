@@ -237,14 +237,41 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         update self._data with checksums_dict given - replace filename, size, hash
         This is special version for 'packages' file where keys are extensions
         """
-        raise NotImplementedError("TODO: paste it to self._data: '%s'" % checksums_dict)
+        for _ext, _vals in checksums_dict.items():
+            logging.debug('Updating checksums for extension "%s"' % _ext)
+            self._update_checksums(_vals)
 
     def _update_checksums(self, checksums_dict):
         """
         update self._data with checksums_dict given - replace filename, size, hash
         This is general version
         """
-        raise NotImplementedError("TODO: paste it to self._data: '%s'" % checksums_dict)
+
+        for _sumtype in checksums_dict.keys():
+            # real key may be different case, thanks to format authors
+            _real_sumtype = list(filter(lambda x: x.lower() == _sumtype.lower(), self._data.keys()))
+
+            if not _real_sumtype:
+                logging.debug("No field: '%s' - nothing to update" % (_sumtype)) 
+                continue
+
+            _real_sumtype = _real_sumtype.pop()
+            logging.debug("Real sumtype is '%s' for '%s'" % (_real_sumtype, _sumtype))
+
+            # here we are forced to use direct indexing instead of 'get' because we need an error if
+            # something goes wrong
+            _record = list(filter(lambda x: x.get('Filename') == checksums_dict.get(_sumtype).get('Filename'),
+                self._data.get(_real_sumtype)))
+
+            if _record:
+                logging.debug("Removing record: '%s'" % _record)
+                _record = _record.pop()
+                self._data[_real_sumtype].remove(_record)
+
+            logging.debug("Appending another record: '%s'" % checksums_dict.get(_sumtype))
+            self._data[_real_sumtype].append(checksums_dict.get(_sumtype))
+
+        raise NotImplementedError("TODO: check if data correct after paste: '%s'\n%s" % (checksums_dict, self._data))
 
     def write(self):
         """

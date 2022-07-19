@@ -25,6 +25,9 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         self._set_list_field()
 
+    def get_parsed_data(self):
+        return deepcopy(self._data)
+
     def _set_list_field(self):
         """
         Setting a list of list-fields for parser
@@ -309,6 +312,14 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
             gpg.sign_file(file_path=self._local, signature_output=_out)
 
         self.open()
+
+    def create_from(self, rlfl):
+        """
+        Create a copy from other rlfl
+        """
+        self.close()
+        self._data = rlfl.get_parsed_data()
+        self.write()
 
     def create(self, distr, mirror, packages):
         """

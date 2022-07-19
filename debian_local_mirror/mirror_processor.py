@@ -126,17 +126,20 @@ class MirrorProcessor(object):
                 continue
 
             if self._args.resign_key:
-                _tmprlfl.strip_architectures(mirror.get("architectures"))
-                _tmprlfl.strip_sections(mirror.get("sections"))
+                if _rlfl:
+                    _tmprlfl.create_from(_rlfl)
+                    _tmprlfl.sign(self._gpg)
+                else:
+                    _tmprlfl.strip_architectures(mirror.get("architectures"))
+                    _tmprlfl.strip_sections(mirror.get("sections"))
 
-            if mirror.get("versions"):
-                _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))
+                    if mirror.get("versions"):
+                        _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))
 
-            if self._args.remove_valid_until:
-                _tmprlfl.remove_valid_until()
+                    if self._args.remove_valid_until:
+                        _tmprlfl.remove_valid_until()
 
-            if self._args.resign_key:
-                _tmprlfl.sign(self._gpg)
+                    _tmprlfl.sign(self._gpg)
 
             if not _rlfl:
                 _rlfl = _tmprlfl

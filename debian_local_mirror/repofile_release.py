@@ -63,7 +63,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 _nval.append({"hash": _hash, "Size": int(_size), "Filename": _path})
 
             data[_key] = _nval
-
+        
         return data
 
     def parse(self):
@@ -225,7 +225,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         Leave 'versions' versions only
         """
 
-        logging.debug("versions: '%d'" % versions)
+        logging.debug("versions: '%d' for '%s'" % (versions, self._local))
 
         self.open()
 
@@ -487,6 +487,13 @@ class RepoFileInRelease(RepoFileRelease):
                     break
 
                 self._fd.write(_line)
+
+            if not _pgp_start:
+                logging.debug("InRelease file without PGP signature - opening as general Release")
+                self._fd.seek(0, 0)
+                _lfl.seek(0, 0)
+                self._fd.write(_lfl.read())
+
 
         self._fd.seek(0, 0)
         self._data = self.parse()

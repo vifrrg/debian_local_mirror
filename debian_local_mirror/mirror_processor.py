@@ -126,10 +126,7 @@ class MirrorProcessor(object):
                 continue
 
             if mirror.get("versions"):
-                _tmprlfl.strip_packages_versions(
-                        local=mirror.get("destination"), 
-                        remote=mirror.get("source"), 
-                        versions=mirror.get("versions"))
+                _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))
                 raise NotImplementedError("TODO: get all 'packages' files, trim them and update their checksums in Release")
 
             if self._args.remove_valid_until:

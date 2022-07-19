@@ -182,16 +182,13 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.close()
         self.write()
 
-    def strip_packages_versions(self, local, remote, versions):
+    def strip_packages_versions(self, versions):
         """
         Download all Packages specified here and modify them by trimming old versions of each package.
         Leave 'versions' versions only
-        :param local: local base directory
-        :param remote: remote 
         """
 
-        logging.debug("local: '%s', remote: '%s', versions: '%d'" % (
-            local, remote,  versions))
+        logging.debug("versions: '%d'" % versions)
 
         self.open()
         _packages = dict()
@@ -212,9 +209,9 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         for _path, _ext_subs in _packages.items():
             _pkg_file = RepoFilePackages(
-                    remote = remote,
-                    local = local,
-                    sub = deepcopy(self._sub)[:-1] + _path.split(posixpath.sep),
+                    remote = posixpath.join(posixpath.dirname(self._remote)),
+                    local = posixpath.join(posixpath.dirname(self._local)),
+                    sub = _path.split(posixpath.sep),
                     checksums = _ext_subs, 
                     extensions = list(_ext_subs.keys()))
 
@@ -270,8 +267,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
             logging.debug("Appending another record: '%s'" % checksums_dict.get(_sumtype))
             self._data[_real_sumtype].append(checksums_dict.get(_sumtype))
-
-        raise NotImplementedError("TODO: check if data correct after paste: '%s'\n%s" % (checksums_dict, self._data))
 
     def write(self):
         """

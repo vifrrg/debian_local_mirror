@@ -317,6 +317,7 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         Create a copy from other rlfl
         """
+        raise NotImplementedError("TODO: copy GPG-signature also - if present")
         self.close()
         self._data = rlfl.get_parsed_data()
         self.write()

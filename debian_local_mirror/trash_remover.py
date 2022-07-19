@@ -162,8 +162,7 @@ class TrashRemover(object):
                 _pth_current = self._fl_current.readline()
 
             if not _pth_current:
-                logging.info("Trash cleanup finished")
-                return
+                break
 
             if not _pth_legal:
                 _pth_legal = ""
@@ -198,9 +197,11 @@ class TrashRemover(object):
             _pth_current = None
 
         self._remove_empty_dirs(self._src_dir)
+        logging.info("Trash cleanup finished")
 
     def _remove_empty_dirs(self, src_dir):
         src_dir = os.path.abspath(src_dir)
+        logging.debug("Cleanup empty dirs called for '%s'" % src_dir)
 
         if not os.path.isdir(src_dir):
             return

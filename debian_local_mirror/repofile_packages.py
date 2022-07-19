@@ -120,6 +120,9 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
 
         self._checksums_fields = None
 
+        if not self._check_checksums():
+            raise ValueError("Updating '%s' failed, checksums not equal" % self._local)
+
     def check_before(self):
         """
         Override base class.

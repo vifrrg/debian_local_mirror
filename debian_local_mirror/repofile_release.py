@@ -227,7 +227,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         self.write()
         self.close()
-        raise NotImplementedError("TODO: load all packages files and strip them")
 
     def _update_checksums_pkg(self, checksums_dict):
         """
@@ -340,6 +339,51 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         self.write()
         self.open()
 
+    def strip_architectures(self, architectures):
+        """
+        Strip unused architectures
+        :param architectures: list of architectures to leave
+        :type architectures: list(str)
+        """
+        if not architectures:
+            raise ValueError("No architectures specified")
+
+        if not isinstance(architectures, list):
+            raise TypeError("Architectures arg should be a list of str")
+
+        logging.debug("Architectures to leave: '%s'" % architectures)
+        self.open()
+        _current_arch = self._data.get("Architectures")
+
+        if not _current_arch:
+            logging.warning("Current architectures list is empty, nothing to strip")
+            return
+
+        logging.debug("Current architectures: '%s'" % _current_arch)
+        _arch_to_remove = list(filter(lambda x: x not in (architectures + ['all']), _current_arch))
+        logging.debug("Architectures to remove: '%s'" % _arch_to_remove)
+
+        for _cs_field in self._checksums_fields:
+            logging.debug("Stripping architectures from field '%s'" % _cs_field)
+
+            if not self._data.get(_cs_field):
+                logging.debug("No checksum of type '%s' in '%s' - skipping" % (_cs_field, self._local))
+                continue
+
+            for _arch in _arch_to_remove:
+                _rg = re.compile('-%s(\.|$|\%s)' % (_arch, posixpath.sep))
+                logging.debug("Removing files for architecture '%s'" % _arch)
+                _records_to_remove = list(filter(lambda x: _rg.search(x.get("Filename")), self._data.get(_cs_field)))
+
+                for _record in _records_to_remove:
+                    logging.debug("Removing record for '%s' from '%s'" % (_record.get("Filename"), _cs_field))
+                    self._data[_cs_field].remove(_record)
+
+
+        self._data["Architectures"] = architectures
+        self.close()
+        self.write()
+
 class RepoFileInRelease(RepoFileRelease):
     """
     Helper to process InRelease file with PGP signature removed
@@ -410,10 +454,3 @@ class RepoFileInRelease(RepoFileRelease):
         gpg.sign_file(file_path=self._local)
         self.open()
 
-    def strip_architectures(self, architectures):
-        """
-        Strip unused architectures
-        :param architectures: list of architectures to leave
-        :type architectures: list(str)
-        """
-        raise NotImplementedError("TODO: open, modify architectures, save")

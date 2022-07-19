@@ -125,15 +125,16 @@ class MirrorProcessor(object):
             if not _tmprlfl.synchronize():
                 continue
 
+            if self._args.resign_key:
+                _tmprlfl.strip_architectures(mirror.get("architectures"))
+
             if mirror.get("versions"):
                 _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))
-                raise NotImplementedError("TODO: get all 'packages' files, trim them and update their checksums in Release")
 
             if self._args.remove_valid_until:
                 _tmprlfl.remove_valid_until()
 
             if self._args.resign_key:
-                _tmprlfl.strip_architectures(mirror.get("architectures"))
                 _tmprlfl.sign(self._gpg)
 
             if not _rlfl:

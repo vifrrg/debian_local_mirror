@@ -251,7 +251,6 @@ class MirrorProcessor(object):
         _pkgs = rlfl.get_packages_file(section, arch)
         rlfl.close()
         _pkgs.open()
-        raise NotImplementedError("TODO: get synchronized packages files for a section and architecture given")
         
         for _fl in _pkgs.get_subfiles():
             logging.info("Processing file: %s" % _fl.get("Filename"))

@@ -128,7 +128,6 @@ class MirrorProcessor(object):
             if self._args.resign_key:
                 if _rlfl:
                     _tmprlfl.create_from(_rlfl)
-                    _tmprlfl.sign(self._gpg)
                 else:
                     _tmprlfl.strip_architectures(mirror.get("architectures"))
                     _tmprlfl.strip_sections(mirror.get("sections"))

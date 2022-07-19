@@ -80,6 +80,11 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
             for _tval in _value:
                 (_hash, _size, _path) = _split_re.split(_tval, 2)
+
+                if _path in ["Release", "Release.gpg", "InRelease"]:
+                    logging.warning("File '%s' includes checksums for itself, and it will be skipped" % self._local)
+                    continue
+
                 _nval.append({"hash": _hash, "Size": int(_size), "Filename": _path})
 
             data[_key] = _nval

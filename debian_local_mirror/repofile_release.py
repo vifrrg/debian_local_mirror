@@ -457,7 +457,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
 
         self.close()
         self.write()
-        raise NotImplementedError(self._local)
 
     def __strip_parameter(self, args_ls, data_key, add_value, regexp_filter):
         """

@@ -255,7 +255,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
 
         logging.debug("versions: '%d' for '%s'" % (versions, self._local))
-
         self.open()
 
         for _section in self._data.get("Components"):
@@ -276,8 +275,8 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 _checksums_dict = _pkg_file.get_updated_checksums_sizes()
                 self._update_checksums_pkg(_checksums_dict)
 
-        self.write()
         self.close()
+        self.write()
 
     def _update_checksums_pkg(self, checksums_dict):
         """
@@ -435,6 +434,31 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         """
         self.__strip_parameter(sections, "Components", None, '^%%s\%s' % posixpath.sep)
 
+    def strip_diff_directories(self):
+        """
+        Remove all .diff includes
+        """
+        logging.debug("Stripping .diffs")
+        self.open()
+        _rg = re.compile('\.diff(\%s|\s|$)' % posixpath.sep)
+
+        for _cs_field in self._checksums_fields:
+            logging.debug("Stripping .diff from field '%s'" % _cs_field)
+
+            if not self._data.get(_cs_field):
+                logging.debug("No checksum of type '%s' in '%s' - skipping" % (_cs_field, self._local))
+                continue
+
+            _records_to_remove = list(filter(lambda x: _rg.search(x.get("Filename")), self._data.get(_cs_field)))
+
+            for _record in _records_to_remove:
+                logging.debug("Removing record for '%s' from '%s'" % (_record.get("Filename"), _cs_field))
+                self._data[_cs_field].remove(_record)
+
+        self.close()
+        self.write()
+        raise NotImplementedError(self._local)
+
     def __strip_parameter(self, args_ls, data_key, add_value, regexp_filter):
         """
         Filter self parameter with regular expression template
@@ -488,7 +512,6 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
                 for _record in _records_to_remove:
                     logging.debug("Removing record for '%s' from '%s'" % (_record.get("Filename"), _cs_field))
                     self._data[_cs_field].remove(_record)
-
 
         self._data[data_key] = args_ls
         self.close()

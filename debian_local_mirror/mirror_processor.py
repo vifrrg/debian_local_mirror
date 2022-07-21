@@ -131,6 +131,7 @@ class MirrorProcessor(object):
                 else:
                     _tmprlfl.strip_architectures(mirror.get("architectures"))
                     _tmprlfl.strip_sections(mirror.get("sections"))
+                    _tmprlfl.strip_diff_directories()
 
                     if mirror.get("versions"):
                         _tmprlfl.strip_packages_versions(versions=mirror.get("versions"))

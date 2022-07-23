@@ -91,12 +91,26 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         
         return data
 
+    def _convert_components(self, data_d):
+        """
+        Remove subpaths from 'Components' section list (provided by some security servers'
+        """
+        if any([not data_d.get("Components"), not isinstance(data_d.get("Components"), list)]):
+            logging.warning("'Components' section absent in '%s'", self._local)
+            return data_d
+
+        data_d["Components"] = list(map(lambda x: posixpath.basename(x), data_d.get("Components")))
+        data_d["Components"] = list(filter(lambda x: isinstance(x, str) and len(x)>0, data_d.get("Components")))
+        return data_d
+
     def parse(self):
         """
         Overrides general 'parse'
         to convert list of files to processable something.
         """
-        return self._convert_checksums(super().parse())
+        _data = self._convert_checksums(super().parse())
+        _data = self._convert_components(_data)
+        return _data
 
     def open(self, mode="rt"):
         """

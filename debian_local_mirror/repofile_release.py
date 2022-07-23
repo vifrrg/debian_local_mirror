@@ -212,6 +212,14 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         Search for 'Packages' file with all possible variants (extensions)
         Return RepoFilePackages instance.
         """
+        if self._data.get("Architectures") and arch not in self._data.get("Architectures"):
+            logging.warning("Architecture '%s' is not covered by '%s'" % (arch, self._local))
+            return None
+
+        if self._data.get("Components") and section not in self._data.get("Components"):
+            logging.warning("Section '%s' is not covered by '%s'" %(section, self._local))
+            return None
+
         _packages = dict()
 
         for _file, _fdata in self.get_subfiles().items():
@@ -481,6 +489,8 @@ class RepoFileRelease(RepoFile, DebianMetaParser):
         if not _current_ls:
             logging.warning("Current '%s' list is empty, nothing to strip" % data_key)
             return
+
+        args_ls = list(filter(lambda x: x in _current_ls, args_ls))
 
         logging.debug("Current %s: '%s'" % (data_key, _current_ls))
         _ls_flt = deepcopy(args_ls)

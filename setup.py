@@ -9,7 +9,7 @@ setup(
     license = "GPL",
     name = "debian_local_mirror",
     packages = ["debian_local_mirror"],
-    version = "1.1.4",
+    version = "1.1.5",
     python_requires = ">=3.5.0",
     install_requires = [
         "requests",

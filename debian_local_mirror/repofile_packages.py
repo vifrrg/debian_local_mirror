@@ -13,6 +13,49 @@ from .repofile import RepoFile
 from .repofile_checksum import RepoFileWithCheckSum
 from .metadata_parser import DebianMetaParser, FormatError
 
+class DebianizedVersion:
+    """
+    Many debin repos contains versions like this: '5:23.0.0-1~debian.12~bookworm'
+    which can not be parsed by 'packaging.verson' without 'packaging.version.InvalidVersion' exception
+    This class overrides.this
+    """
+    def __init__(self, version_s):
+        """
+        Initialize version class
+        """
+        self.str_version = version_s
+        self.packaging_version = None
+
+        while all([not self.packaging_version, version_s]):
+            try:
+                self.packaging_version = version.parse(version_s)
+            except version.InvalidVersion:
+                version_s = version_s[:-1]
+
+        if not self.packaging_version:
+            raise version.InvalidVersion(self.str_version)
+
+    def __str__(self):
+        return self.str_version
+
+    def __lt__(self, other):
+        return self.packaging_version < other.packaging_version
+
+    def __le__(self, other):
+        return self.packaging_version <= other.packaging_version
+
+    def __gt__(self, other):
+        return self.packaging_version > other.packaging_version
+
+    def __ge__(self, other):
+        return self.packaging_version >= other.packaging_version
+
+    def __eq__(self, other):
+        return self.packaging_version == other.packaging_version
+
+    def __ne__(self, other):
+        return self.packaging_version != other.packaging_version
+
 class RepoFilePackages(RepoFile, DebianMetaParser):
     """
     Specific Packages file processor
@@ -260,7 +303,7 @@ class RepoFilePackages(RepoFile, DebianMetaParser):
             logging.debug("Type of _all_package_records: '%s'" % type(_all_package_records))
             _versions = list(map(lambda x: x.get("Version"), _all_package_records))
             logging.debug("Versions in source: '%s'" % _versions)
-            _versions = list(map(lambda x: version.parse(x), _versions))
+            _versions = list(map(lambda x: DebianizedVersion(x), _versions))
             _versions.sort(reverse=True)
             _versions = _versions[:versions]
             _versions = list(map(lambda x: str(x), _versions))

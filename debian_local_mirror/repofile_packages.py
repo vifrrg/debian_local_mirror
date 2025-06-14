@@ -3,6 +3,7 @@ import bz2
 import lzma
 
 import os
+import re
 import logging
 import posixpath
 from copy import deepcopy
@@ -25,6 +26,7 @@ class DebianizedVersion:
         """
         self.str_version = version_s
         self.packaging_version = None
+        version_s = re.sub("[^0-9]+", ".", version_s)
 
         while all([not self.packaging_version, version_s]):
             try:

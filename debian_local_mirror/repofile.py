@@ -3,6 +3,7 @@ import os
 import posixpath
 import requests
 import shutil
+import urllib3
 
 class HttpError(Exception):
     def __init__(self, code=0, url='', resp=None, text=''):
@@ -120,19 +121,40 @@ class RepoFile(object):
         :type absent_ok: bool
         """
         _web = requests.Session()
-        _rsp = _web.get(remote, stream = True)
+
+        _retry_conf = urllib3.util.retry.Retry(
+            total=5,
+            status_forcelist=[
+                requests.codes.server_error,
+                requests.codes.not_implemented,
+                requests.codes.bad_gateway,
+                requests.codes.service_unavailable,
+                requests.codes.gateway_timeout,
+                requests.codes.http_version_not_supported,
+                requests.codes.variant_also_negotiates,
+                requests.codes.insufficient_storage,
+                requests.codes.bandwidth_limit_exceeded,
+                requests.codes.not_extended
+                ],
+            allowed_methods=["GET", "POST", "PUT", "HEAD", "DELETE"],
+            backoff_factor=2
+        )
+        _adapter = requests.adapters.HTTPAdapter(max_retries=_retry_conf)
+        _web.mount(remote, _adapter)
+
+        _rsp = _web.get(remote, stream=True, timeout=(30.0, 30.0), allow_redirects=True)
 
         if (os.path.exists(local)):
             os.remove(local)
 
-        if _rsp.status_code != 200:
+        if _rsp.status_code != requests.codes.ok:
             _rsp.close()
             if absent_ok:
                 # remove local file
                 logging.debug("File '%s' not found, removing local copy also" % self._remote)
                 return
 
-            raise HttpError(_rsp.status_code, _rsp.url, _rsp, 'Error making request to server')
+            _rsp.raise_for_status()
 
         logging.info("'%s' ==> '%s'" % (remote, local))
 
@@ -143,6 +165,7 @@ class RepoFile(object):
             _fl.flush()
 
         _rsp.close()
+        _web.close()
 
     def unpack_if_needed(self):
         """

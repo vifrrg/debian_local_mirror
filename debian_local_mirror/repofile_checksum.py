@@ -8,14 +8,15 @@ class RepoFileWithCheckSum(RepoFile):
     """
     General file with checksum
     """
-    def __init__(self, remote, local, fdict, absent_ok=True):
+    def __init__(self, remote, local, fdict, absent_ok=True, size=None):
         self._data = None
         super().__init__(
                 remote=remote,
                 local=local,
                 sub=fdict.get("sub"),
                 extensions=[""],
-                absent_ok=absent_ok)
+                absent_ok=absent_ok,
+                size=size)
 
         self._fdict = fdict
         self._links = list()

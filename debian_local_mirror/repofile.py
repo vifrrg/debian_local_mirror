@@ -17,7 +17,7 @@ class HttpError(Exception):
 
 
 class RepoFile(object):
-    def __init__(self, remote, local, sub, extensions = list(), absent_ok = False):
+    def __init__(self, remote, local, sub, extensions=list(), absent_ok=False, size=None):
         """
         Synchronization of single file - basics
         :param remote: URI to exact remote
@@ -45,6 +45,7 @@ class RepoFile(object):
             self._ext.append("")
 
         self._fd = None
+        self._size = size
 
     def _set_checksums_fields(self):
         """
@@ -120,6 +121,7 @@ class RepoFile(object):
         :param absent_ok: do not raise an exception of file is absent in remote
         :type absent_ok: bool
         """
+            
         _web = requests.Session()
 
         _retry_conf = urllib3.util.retry.Retry(
@@ -142,12 +144,30 @@ class RepoFile(object):
         _adapter = requests.adapters.HTTPAdapter(max_retries=_retry_conf)
         _web.mount(remote, _adapter)
 
-        _rsp = _web.get(remote, stream=True, timeout=(30.0, 30.0), allow_redirects=True)
+        _mode = 'wb'
+        _headers = dict()
+
+        if self._size and os.path.exists(local):
+            _downloaded = os.path.getsize(local)
+
+            if _downloaded <= self._size:
+                logging.debug("Try to restart download from %d" % _downloaded)
+                _headers = {"Range": "bytes=%d-%d" % (_downloaded, self._size - 1)}
+                _rsp = _web.head(remote, timeout=(30.0, 30.0), allow_redirects=True, headers=_headers)
+
+                if _rsp.status_code != requests.codes.partial:
+                    logging.debug("Servers does not support restart downloading: %d" % _rsp.status_code)
+                    _headers = dict()
+                else:
+                    _mode = 'ab'
+                    logging.info("Restart downloading from %d" % _downloaded)
+
+        _rsp = _web.get(remote, stream=True, timeout=(30.0, 30.0), allow_redirects=True, headers=_headers)
 
         if (os.path.exists(local)):
             os.remove(local)
 
-        if _rsp.status_code != requests.codes.ok:
+        if _rsp.status_code not in [requests.codes.ok, requests.codes.partial_content]:
             _rsp.close()
             if absent_ok:
                 # remove local file
@@ -158,7 +178,7 @@ class RepoFile(object):
 
         logging.info("'%s' ==> '%s'" % (remote, local))
 
-        with open(local, 'wb') as _fl:
+        with open(local, _mode) as _fl:
             for chunk in _rsp.iter_content(8192):
                 _fl.write(chunk)
 

@@ -259,11 +259,12 @@ class MirrorProcessor(object):
         _pkgs.open()
         
         for _fl in _pkgs.get_subfiles():
-            logging.info("Processing file: %s" % _fl.get("Filename"))
+            logging.info("Processing file: %s, size: %s" % (_fl.get("Filename"), _fl.get("Size", "0") or "0"))
             _subfl = RepoFileWithCheckSum(
                 local=mirror.get("destination"),
                 remote=mirror.get("source"),
-                fdict=_fl)
+                fdict=_fl,
+                size=int(_fl.get("Size", "0") or "0") or None)
 
             if(_subfl.synchronize()):
                 self._files.write('\n' + '\n'.join(_subfl.get_local_paths()))

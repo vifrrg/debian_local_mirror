@@ -164,7 +164,8 @@ class RepoFile(object):
 
         _rsp = _web.get(remote, stream=True, timeout=(30.0, 30.0), allow_redirects=True, headers=_headers)
 
-        if (os.path.exists(local)):
+        if os.path.exists(local) and mode=='wb':
+            # no need to continue download or server does not support it
             os.remove(local)
 
         if _rsp.status_code not in [requests.codes.ok, requests.codes.partial_content]:
